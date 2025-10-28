@@ -1,35 +1,35 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
-import { OmnibusProvider, useOmnibus } from '@/components/OmnibusProvider';
+import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { render, screen, act, waitFor } from '@testing-library/react'
+import { OmnibusProvider, useOmnibus } from '@/components/OmnibusProvider'
 
 // --- Hoist mocks so they're available when vi.mock factory runs ---
 const { mockOn, mockDisconnect, mockCommunicator } = vi.hoisted(() => {
-    const mockOn = vi.fn();
-    const mockDisconnect = vi.fn();
+    const mockOn = vi.fn()
+    const mockDisconnect = vi.fn()
     const mockCommunicator = vi.fn(() => ({
         socket: { on: mockOn },
         disconnect: mockDisconnect,
         sender: { send: vi.fn() },
         receiver: { receive: vi.fn(), receiveAll: vi.fn() },
-    }));
-    return { mockOn, mockDisconnect, mockCommunicator };
-});
+    }))
+    return { mockOn, mockDisconnect, mockCommunicator }
+})
 
 vi.mock('@waterloorocketry/omnibus-ts', () => ({
     communicator: mockCommunicator,
-}));
+}))
 
 // --- Helper to fire socket events registered via mockOn ---
 function emitSocketEvent(eventName: string, ...args: unknown[]) {
-    const calls = mockOn.mock.calls as [string, (...a: unknown[]) => void][];
-    const handler = calls.find(([name]) => name === eventName)?.[1];
-    if (!handler) throw new Error(`No handler registered for '${eventName}'`);
-    handler(...args);
+    const calls = mockOn.mock.calls as [string, (...a: unknown[]) => void][]
+    const handler = calls.find(([name]) => name === eventName)?.[1]
+    if (!handler) throw new Error(`No handler registered for '${eventName}'`)
+    handler(...args)
 }
 
 // --- Test component that exposes provider state ---
 function StatusDisplay() {
-    const { connectionStatus, errorMessage, connect, disconnect } = useOmnibus();
+    const { connectionStatus, errorMessage, connect, disconnect } = useOmnibus()
     return (
         <div>
             <span data-testid="status">{connectionStatus}</span>
@@ -37,7 +37,7 @@ function StatusDisplay() {
             <button onClick={() => connect('http://localhost:8081')}>connect</button>
             <button onClick={disconnect}>disconnect</button>
         </div>
-    );
+    )
 }
 
 function renderWithProvider() {
@@ -45,74 +45,93 @@ function renderWithProvider() {
         <OmnibusProvider>
             <StatusDisplay />
         </OmnibusProvider>
-    );
+    )
 }
-
 
 describe('OmnibusProvider', () => {
     beforeEach(() => {
-        mockOn.mockClear();
-        mockDisconnect.mockClear();
-        mockCommunicator.mockClear();
+        mockOn.mockClear()
+        mockDisconnect.mockClear()
+        mockCommunicator.mockClear()
         mockCommunicator.mockReturnValue({
             socket: { on: mockOn },
             disconnect: mockDisconnect,
             sender: { send: vi.fn() },
             receiver: { receive: vi.fn(), receiveAll: vi.fn() },
-        });
-    });
+        })
+    })
 
     it('starts with disconnected status', () => {
-        renderWithProvider();
-        expect(screen.getByTestId('status').textContent).toBe('disconnected');
-    });
+        renderWithProvider()
+        expect(screen.getByTestId('status').textContent).toBe('disconnected')
+    })
 
     it('sets status to connecting when connect() is called', async () => {
-        renderWithProvider();
-        act(() => { screen.getByText('connect').click(); });
-        expect(screen.getByTestId('status').textContent).toBe('connecting');
-    });
+        renderWithProvider()
+        act(() => {
+            screen.getByText('connect').click()
+        })
+        expect(screen.getByTestId('status').textContent).toBe('connecting')
+    })
 
     it('sets status to connected on socket connect event', async () => {
-        renderWithProvider();
-        act(() => { screen.getByText('connect').click(); });
-        act(() => { emitSocketEvent('connect'); });
+        renderWithProvider()
+        act(() => {
+            screen.getByText('connect').click()
+        })
+        act(() => {
+            emitSocketEvent('connect')
+        })
         await waitFor(() => {
-            expect(screen.getByTestId('status').textContent).toBe('connected');
-        });
-    });
+            expect(screen.getByTestId('status').textContent).toBe('connected')
+        })
+    })
 
     it('sets error status and message on connect_error event', async () => {
-        renderWithProvider();
-        act(() => { screen.getByText('connect').click(); });
-        act(() => { emitSocketEvent('connect_error', { message: 'refused' }); });
+        renderWithProvider()
+        act(() => {
+            screen.getByText('connect').click()
+        })
+        act(() => {
+            emitSocketEvent('connect_error', { message: 'refused' })
+        })
         await waitFor(() => {
-            expect(screen.getByTestId('status').textContent).toBe('error');
-            expect(screen.getByTestId('error').textContent).toContain('refused');
-        });
-    });
+            expect(screen.getByTestId('status').textContent).toBe('error')
+            expect(screen.getByTestId('error').textContent).toContain('refused')
+        })
+    })
 
     it('calls disconnect on the communicator after connect_error', async () => {
-        renderWithProvider();
-        act(() => { screen.getByText('connect').click(); });
-        act(() => { emitSocketEvent('connect_error', { message: 'refused' }); });
+        renderWithProvider()
+        act(() => {
+            screen.getByText('connect').click()
+        })
+        act(() => {
+            emitSocketEvent('connect_error', { message: 'refused' })
+        })
         await waitFor(() => {
-            expect(mockDisconnect).toHaveBeenCalledOnce();
-        });
-    });
+            expect(mockDisconnect).toHaveBeenCalledOnce()
+        })
+    })
 
     it('sets status to disconnected when disconnect() is called', async () => {
-        renderWithProvider();
-        act(() => { screen.getByText('connect').click(); });
-        act(() => { emitSocketEvent('connect'); });
+        renderWithProvider()
+        act(() => {
+            screen.getByText('connect').click()
+        })
+        act(() => {
+            emitSocketEvent('connect')
+        })
         await waitFor(() => {
-            expect(screen.getByTestId('status').textContent).toBe('connected');
-        });
-        act(() => { screen.getByText('disconnect').click(); });
+            expect(screen.getByTestId('status').textContent).toBe('connected')
+        })
+        act(() => {
+            screen.getByText('disconnect').click()
+        })
         await waitFor(() => {
-            expect(screen.getByTestId('status').textContent).toBe('disconnected');
-        });
-    });
+            expect(screen.getByTestId('status').textContent).toBe('disconnected')
+        })
+    })
 
     it('sets error status when socket is undefined', async () => {
         mockCommunicator.mockReturnValueOnce({
@@ -120,12 +139,14 @@ describe('OmnibusProvider', () => {
             disconnect: mockDisconnect,
             sender: { send: vi.fn() },
             receiver: { receive: vi.fn(), receiveAll: vi.fn() },
-        });
-        renderWithProvider();
-        act(() => { screen.getByText('connect').click(); });
+        })
+        renderWithProvider()
+        act(() => {
+            screen.getByText('connect').click()
+        })
         await waitFor(() => {
-            expect(screen.getByTestId('status').textContent).toBe('error');
-        });
-        expect(mockDisconnect).toHaveBeenCalledOnce();
-    });
-});
+            expect(screen.getByTestId('status').textContent).toBe('error')
+        })
+        expect(mockDisconnect).toHaveBeenCalledOnce()
+    })
+})
