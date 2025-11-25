@@ -13,6 +13,7 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog'
 import { useOmnibus } from '@/components/OmnibusProvider'
+import { CanSender } from '@/components/CanSender'
 
 function App() {
     const { connectionStatus, errorMessage, connect, disconnect } = useOmnibus()
@@ -84,7 +85,9 @@ function App() {
                     </Dialog>
                 )}
             </div>
-            <div className="content" />
+            <div className="content">
+                <CanSender />
+            </div>
         </div>
     )
 }
