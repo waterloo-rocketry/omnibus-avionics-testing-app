@@ -18,8 +18,6 @@ const formSchema = z.object({
   board_type_id: z.string(),
   board_inst_id: z.string(),
   time: z.string(),
-  actuator: z.string(),
-  cmd_state: z.string(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -28,13 +26,10 @@ export function CanSender() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      msg_type: "ACTUATOR_CMD",
       msg_prio: "HIGHEST",
       board_type_id: "ANY",
       board_inst_id: "ANY",
       time: "000000000",
-      actuator: "ACTUATOR_OX_INJECTOR_VALVE",
-      cmd_state: "ACT_STATE_ON",
     },
   })
 
@@ -108,19 +103,19 @@ export function CanSender() {
             name="board_inst_id"
             render={({ field }) => (
               <FormItem className="flex-1">
-                <FormLabel className="text-xs text-zinc-400">board_inst_id</FormLabel>
+                <FormLabel className="text-xs text-zinc-400">board_inst_id </FormLabel>
                 <FormControl>
-                  <Select {...field} className="bg-zinc-800 border-zinc-700 text-white">
-                    <option value="ANY">ANY</option>
-                    <option value="INST_1">INST_1</option>
-                    <option value="INST_2">INST_2</option>
-                  </Select>
+                  <Input
+                    {...field}
+                    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                    placeholder=" "
+                  />
                 </FormControl>
               </FormItem>
             )}
           />
 
-          {/* time */}
+          
           <FormField
             control={form.control}
             name="time"
@@ -131,47 +126,16 @@ export function CanSender() {
                   <Input
                     {...field}
                     className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-                    placeholder="000000000"
+                    placeholder=" "
                   />
                 </FormControl>
               </FormItem>
             )}
           />
 
-          {/* actuator */}
-          <FormField
-            control={form.control}
-            name="actuator"
-            render={({ field }) => (
-              <FormItem className="flex-[2]">
-                <FormLabel className="text-xs text-zinc-400">actuator</FormLabel>
-                <FormControl>
-                  <Select {...field} className="bg-zinc-800 border-zinc-700 text-white">
-                    <option value="ACTUATOR_OX_INJECTOR_VALVE">ACTUATOR_OX_INJECTOR_VALVE</option>
-                    <option value="ACTUATOR_FUEL_INJECTOR_VALVE">ACTUATOR_FUEL_INJECTOR_VALVE</option>
-                    <option value="ACTUATOR_VENT_VALVE">ACTUATOR_VENT_VALVE</option>
-                  </Select>
-                </FormControl>
-              </FormItem>
-            )}
-          />
+          
+         
 
-          {/* cmd_state */}
-          <FormField
-            control={form.control}
-            name="cmd_state"
-            render={({ field }) => (
-              <FormItem className="flex-1">
-                <FormLabel className="text-xs text-zinc-400">cmd_state</FormLabel>
-                <FormControl>
-                  <Select {...field} className="bg-zinc-800 border-zinc-700 text-white">
-                    <option value="ACT_STATE_ON">ACT_STATE_ON</option>
-                    <option value="ACT_STATE_OFF">ACT_STATE_OFF</option>
-                  </Select>
-                </FormControl>
-              </FormItem>
-            )}
-          />
 
           {/* SEND Button */}
           <Button
