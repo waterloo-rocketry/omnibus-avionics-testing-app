@@ -3,21 +3,33 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Select } from "@/components/ui/select"
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from "@/components/ui/form"
 
+const jsonStringSchema = z.string().refine((val) => {
+  if (val.trim() === "") return true
+  try {
+    JSON.parse(val)
+    return true
+  } catch {
+    return false
+  }
+}, {
+  message: "Invalid JSON format",
+})
+
 const formSchema = z.object({
-  msg_type: z.string(),
-  msg_prio: z.string(),
-  board_type_id: z.string(),
-  board_inst_id: z.string(),
-  time: z.string(),
+  msg_type: jsonStringSchema,
+  msg_prio: jsonStringSchema,
+  board_type_id: jsonStringSchema,
+  board_inst_id: jsonStringSchema,
+  time: jsonStringSchema,
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -26,36 +38,46 @@ export function CanSender() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      msg_prio: "HIGHEST",
-      board_type_id: "ANY",
-      board_inst_id: "ANY",
-      time: "000000000",
+      msg_type: "",
+      msg_prio: "",
+      board_type_id: "",
+      board_inst_id: "",
+      time: "",
     },
   })
 
   const onSubmit = (data: FormData) => {
-    console.log(data)
+    // Parse JSON values before submitting
+    const parsedData = {
+      msg_type: data.msg_type ? JSON.parse(data.msg_type) : null,
+      msg_prio: data.msg_prio ? JSON.parse(data.msg_prio) : null,
+      board_type_id: data.board_type_id ? JSON.parse(data.board_type_id) : null,
+      board_inst_id: data.board_inst_id ? JSON.parse(data.board_inst_id) : null,
+      time: data.time ? JSON.parse(data.time) : null,
+    }
+    console.log(parsedData)
   }
 
   return (
     <div className="flex items-center justify-center min-h-screen">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="flex items-end gap-3 bg-zinc-900 p-4 rounded-lg">
+          <div className="flex flex-col items-end items-stretch gap-3 bg-zinc-900 p-4 rounded-lg">
           {/* msg_type */}
           <FormField
             control={form.control}
             name="msg_type"
             render={({ field }) => (
               <FormItem className="flex-1">
-                <FormLabel className="text-xs text-zinc-400">msg_type</FormLabel>
+                <FormLabel className="text-xs text-zinc-400">msg_type </FormLabel>
                 <FormControl>
-                  <Select {...field} className="bg-zinc-800 border-zinc-700 text-white">
-                    <option value="ACTUATOR_CMD">ACTUATOR_CMD</option>
-                    <option value="SENSOR_CMD">SENSOR_CMD</option>
-                    <option value="OTHER">OTHER</option>
-                  </Select>
+                  <Input
+                    {...field}
+                    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                    placeholder='e.g., {"value": 1}'
+                  />
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -66,15 +88,15 @@ export function CanSender() {
             name="msg_prio"
             render={({ field }) => (
               <FormItem className="flex-1">
-                <FormLabel className="text-xs text-zinc-400">msg_prio</FormLabel>
+                <FormLabel className="text-xs text-zinc-400">msg_prio </FormLabel>
                 <FormControl>
-                  <Select {...field} className="bg-zinc-800 border-zinc-700 text-white">
-                    <option value="HIGHEST">HIGHEST</option>
-                    <option value="HIGH">HIGH</option>
-                    <option value="MEDIUM">MEDIUM</option>
-                    <option value="LOW">LOW</option>
-                  </Select>
+                  <Input
+                    {...field}
+                    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                    placeholder='e.g., {"priority": 2}'
+                  />
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -85,14 +107,15 @@ export function CanSender() {
             name="board_type_id"
             render={({ field }) => (
               <FormItem className="flex-1">
-                <FormLabel className="text-xs text-zinc-400">board_type_id</FormLabel>
+                <FormLabel className="text-xs text-zinc-400">board_type_id </FormLabel>
                 <FormControl>
-                  <Select {...field} className="bg-zinc-800 border-zinc-700 text-white">
-                    <option value="ANY">ANY</option>
-                    <option value="BOARD_1">BOARD_1</option>
-                    <option value="BOARD_2">BOARD_2</option>
-                  </Select>
+                  <Input
+                    {...field}
+                    className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
+                    placeholder='e.g., {"id": "abc123"}'
+                  />
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
@@ -108,14 +131,15 @@ export function CanSender() {
                   <Input
                     {...field}
                     className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-                    placeholder=" "
+                    placeholder='e.g., {"inst": 5}'
                   />
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
 
-          
+
           <FormField
             control={form.control}
             name="time"
@@ -126,9 +150,10 @@ export function CanSender() {
                   <Input
                     {...field}
                     className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-                    placeholder=" "
+                    placeholder='e.g., {"seconds": 10}'
                   />
                 </FormControl>
+                <FormMessage />
               </FormItem>
             )}
           />
