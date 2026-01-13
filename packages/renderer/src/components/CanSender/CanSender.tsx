@@ -62,7 +62,7 @@ export function CanSender() {
     <div className="flex items-center justify-center min-h-screen">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="flex flex-col items-end items-stretch gap-3 bg-zinc-900 p-4 rounded-lg">
+          <div className="flex flex-col items-stretch gap-3 bg-zinc-900 p-4 rounded-lg">
           {/* msg_type */}
           <FormField
             control={form.control}
