@@ -49,11 +49,11 @@ export function CanSender() {
   const onSubmit = (data: FormData) => {
     // Parse JSON values before submitting
     const parsedData = {
-      msg_type: data.msg_type ? JSON.parse(data.msg_type) : null,
-      msg_prio: data.msg_prio ? JSON.parse(data.msg_prio) : null,
-      board_type_id: data.board_type_id ? JSON.parse(data.board_type_id) : null,
-      board_inst_id: data.board_inst_id ? JSON.parse(data.board_inst_id) : null,
-      time: data.time ? JSON.parse(data.time) : null,
+      msg_type: data.msg_type && data.msg_type.trim() ? JSON.parse(data.msg_type) : null,
+      msg_prio: data.msg_prio && data.msg_prio.trim() ? JSON.parse(data.msg_prio) : null,
+      board_type_id: data.board_type_id && data.board_type_id.trim() ? JSON.parse(data.board_type_id) : null,
+      board_inst_id: data.board_inst_id && data.board_inst_id.trim() ? JSON.parse(data.board_inst_id) : null,
+      time: data.time && data.time.trim() ? JSON.parse(data.time) : null,
     }
     console.log(parsedData)
   }
