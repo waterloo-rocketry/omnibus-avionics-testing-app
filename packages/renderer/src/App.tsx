@@ -68,17 +68,17 @@ type OmnibusCommunicator = ReturnType<typeof communicator>
                         <DialogHeader>
                             <DialogTitle>Connect to Omnibus</DialogTitle>
                             <DialogDescription>
-                                Enter the serial port path to connect to the Omnibus board.
+                                Enter the server address to connect to the Omnibus board.
                             </DialogDescription>
                         </DialogHeader>
 
                         <div className="grid gap-4">
                             <div className="grid gap-3">
 
-                                <Label htmlFor="port">Serial Port Path</Label>
+                                <Label htmlFor="port">Server Address</Label>
                                 
                                 <Input
-                                    placeholder="e.g., COM3 or /dev/ttyUSB0"
+                                    placeholder="e.g., localhost:8080 or http://192.168.1.100:8080"
                                     value={inputValue}
                                     onChange={(e) => setInputValue(e.target.value)}
                                 />
@@ -105,6 +105,7 @@ type OmnibusCommunicator = ReturnType<typeof communicator>
                                             newOmnibus.socket?.on('connect_error', (err) => {
                                                 setErrorMessage('Failed to connect: ' + err.message)
                                                 setConnectionStatus('error')
+                                                newOmnibus.disconnect()
                                             })
                                             newOmnibus.socket?.on('connect', () => {
                                                 setConnectionStatus('connected')
