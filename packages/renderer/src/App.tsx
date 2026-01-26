@@ -75,9 +75,10 @@ type OmnibusCommunicator = ReturnType<typeof communicator>
                         <div className="grid gap-4">
                             <div className="grid gap-3">
 
-                                <Label htmlFor="port">Server Address</Label>
+                                <Label htmlFor="serverAddress">Server Address</Label>
                                 
                                 <Input
+                                    id="serverAddress"
                                     placeholder="e.g., localhost:8080 or http://192.168.1.100:8080"
                                     value={inputValue}
                                     onChange={(e) => setInputValue(e.target.value)}
@@ -102,15 +103,16 @@ type OmnibusCommunicator = ReturnType<typeof communicator>
                                                 serverURL: inputValue,
                                                 allowExposeSocket: true 
                                             })
+                                            setOmnibus(newOmnibus)
                                             newOmnibus.socket?.on('connect_error', (err) => {
                                                 setErrorMessage('Failed to connect: ' + err.message)
                                                 setConnectionStatus('error')
                                                 newOmnibus.disconnect()
+                                                setOmnibus(null)
                                             })
                                             newOmnibus.socket?.on('connect', () => {
                                                 setConnectionStatus('connected')
                                                 setIsDialogOpen(false)
-                                                setOmnibus(newOmnibus);
                                             })
                                         } catch (error) {
                                             setErrorMessage('Failed to connect to Omnibus board.')
