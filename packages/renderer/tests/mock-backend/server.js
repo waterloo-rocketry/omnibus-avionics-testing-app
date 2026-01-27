@@ -1,10 +1,10 @@
 import { Server } from 'socket.io';
 import msgpackParser from 'socket.io-msgpack-parser';
 
-const io = new Server({
+const io = new Server(8081, {
     cors: { origin: '*' },
     parser: msgpackParser,
-}, 8081);
+});
 
 io.on('connection', (socket) => {
     console.log(`Client connected: ${socket.id}`);
