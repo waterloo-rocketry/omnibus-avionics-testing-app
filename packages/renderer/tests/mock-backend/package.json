@@ -1,6 +1,7 @@
 {
   "name": "omnibus-mock-server",
   "version": "1.0.0",
+  "type": "module",
   "description": "Mock Socket.IO server for testing Omnibus connections",
   "main": "server.js",
   "scripts": {
