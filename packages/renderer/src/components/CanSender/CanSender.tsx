@@ -12,24 +12,17 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 
-const jsonStringSchema = z.string().refine((val) => {
-  if (val.trim() === "") return true
-  try {
-    JSON.parse(val)
-    return true
-  } catch {
-    return false
-  }
-}, {
-  message: "Invalid JSON format",
-})
-
 const formSchema = z.object({
-  msg_type: jsonStringSchema,
-  msg_prio: jsonStringSchema,
-  board_type_id: jsonStringSchema,
-  board_inst_id: jsonStringSchema,
-  time: jsonStringSchema,
+  msg_type: z.string(),
+  msg_prio: z.string(),
+  board_type_id: z.string(),
+  board_inst_id: z.string(),
+  time: z.string().refine((val) => {
+    if (val.trim() === "") return true
+    return !isNaN(parseInt(val, 10))
+  }, {
+    message: "Must be a valid integer",
+  }),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -47,13 +40,13 @@ export function CanSender() {
   })
 
   const onSubmit = (data: FormData) => {
-    // Parse JSON values before submitting
+    // Convert values to JSON format
     const parsedData = {
-      msg_type: data.msg_type && data.msg_type.trim() ? JSON.parse(data.msg_type) : null,
-      msg_prio: data.msg_prio && data.msg_prio.trim() ? JSON.parse(data.msg_prio) : null,
-      board_type_id: data.board_type_id && data.board_type_id.trim() ? JSON.parse(data.board_type_id) : null,
-      board_inst_id: data.board_inst_id && data.board_inst_id.trim() ? JSON.parse(data.board_inst_id) : null,
-      time: data.time && data.time.trim() ? JSON.parse(data.time) : null,
+      msg_type: data.msg_type.trim() || null,
+      msg_prio: data.msg_prio.trim() || null,
+      board_type_id: data.board_type_id.trim() || null,
+      board_inst_id: data.board_inst_id.trim() || null,
+      time: data.time.trim() ? parseInt(data.time, 10) : null,
     }
     console.log(parsedData)
   }
@@ -74,7 +67,7 @@ export function CanSender() {
                   <Input
                     {...field}
                     className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-                    placeholder='e.g., {"value": 1}'
+                    placeholder="str"
                   />
                 </FormControl>
                 <FormMessage />
@@ -93,7 +86,7 @@ export function CanSender() {
                   <Input
                     {...field}
                     className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-                    placeholder='e.g., {"priority": 2}'
+                    placeholder="str"
                   />
                 </FormControl>
                 <FormMessage />
@@ -112,7 +105,7 @@ export function CanSender() {
                   <Input
                     {...field}
                     className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-                    placeholder='e.g., {"id": "abc123"}'
+                    placeholder="str"
                   />
                 </FormControl>
                 <FormMessage />
@@ -131,7 +124,7 @@ export function CanSender() {
                   <Input
                     {...field}
                     className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-                    placeholder='e.g., {"inst": 5}'
+                    placeholder="str"
                   />
                 </FormControl>
                 <FormMessage />
@@ -150,7 +143,7 @@ export function CanSender() {
                   <Input
                     {...field}
                     className="bg-zinc-800 border-zinc-700 text-white placeholder:text-zinc-500"
-                    placeholder='e.g., {"seconds": 10}'
+                    placeholder="int"
                   />
                 </FormControl>
                 <FormMessage />
