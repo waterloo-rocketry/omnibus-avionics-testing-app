@@ -1,12 +1,9 @@
-import { TableCell, TableRow } from '@/components/ui/table'
+import {
+  TableCell,
+  TableRow,
+} from "@/components/ui/table"
 
-function BoardStatusRow({
-    name,
-    value,
-}: {
-    name: string | number
-    value: string | number | undefined
-}) {
+function BoardStatusRow({name, value} : {name: string | number, value: string | number | undefined}) {
     return (
         <TableRow>
             <TableCell>{name}</TableCell>
@@ -15,4 +12,4 @@ function BoardStatusRow({
     )
 }
 
-export default BoardStatusRow
+export default BoardStatusRow;

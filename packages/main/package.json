@@ -14,12 +14,13 @@
     "dependencies": {
         "@app/preload": "*",
         "@app/renderer": "*",
-        "electron-updater": "6.6.2"
+        "electron-updater": "6.6.2",
+        "glob": "11.1.0"
     },
     "devDependencies": {
         "@app/electron-versions": "*",
         "electron-devtools-installer": "4.0.0",
         "typescript": "5.9.2",
-        "vite": "7.1.7"
+        "vite": "^7.3.1"
     }
 }

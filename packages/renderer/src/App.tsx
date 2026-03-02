@@ -1,140 +1,49 @@
- import './App.css'
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-} from "@/components/ui/dialog"
-import { Label } from '@/components/ui/label'
+import { useEffect } from 'react'
+import './App.css'
+import type { BoardMessage } from '@/components/types.ts'
+import BoardStatusDashboard from './components/BoardStatus/BoardStatusDashboard'
+import ConnectToOmnibus from './components/ConnectToOmnibus'
+import { connectAvionicsSocket, disconnectAvionicsSocket } from '../tests/omnibusSocket'
+import { useAvionicsStore } from '@/store/omnibusStore'
 
-import { useState, useEffect } from 'react'
+function App() {
+    // setting up zustand store
+    const series = useAvionicsStore((state) => state.series)
 
-import { communicator } from '@waterloorocketry/omnibus-ts'
-
-type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'error'
-type OmnibusCommunicator = ReturnType<typeof communicator>
- function App() {
-    const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected')
-    const [inputValue, setInputValue] = useState<string>('')
-    const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false)
-    const [errorMessage, setErrorMessage] = useState<string>('')
-    const [omnibus, setOmnibus] = useState<OmnibusCommunicator | null>(null)
-    // Cleanup on unmount
     useEffect(() => {
-        return () => {
-            if (omnibus) {
-                omnibus.disconnect()
-            }
-        }
-    }, [omnibus])
-     return (
-         <>
+        connectAvionicsSocket()
+        return () => disconnectAvionicsSocket()
+    }, [])
+
+    const boardData: BoardMessage<Record<string, string | number>>[] = [
+        {
+            boardTypeId: 'FlightController',
+            boardInstId: 'FC-01',
+            msgPriority: String(series['FC-01']?.msgPrio ?? 1),
+            msgType: 'telemetry',
+            data: {
+                status: series['FC-01']?.status ?? 'OK',
+                temperature: series['FC-01']?.value ?? 36.5,
+            },
+        },
+        {
+            boardTypeId: 'Telemetry',
+            boardInstId: 'TM-02',
+            msgPriority: String(series['TM-02']?.msgPrio ?? 2),
+            msgType: 'status',
+            data: {
+                status: series['TM-02']?.status ?? 'WARN',
+                voltage: series['TM-02']?.value ?? 3.7,
+            },
+        },
+    ]
+
+    return (
         <div className="App">
-            <div className="header">
-                {connectionStatus === 'connected' && omnibus ? (
-                    <p className="text-sm text-green-600">🟢Connected to {inputValue}</p>
-                ) : connectionStatus === 'connecting' ? (
-                    <p className="text-sm text-blue-600">🔵Connecting...</p>
-                ) : connectionStatus === 'error' ? (
-                    <p className="text-sm text-red-600">🔴Connection Error</p>
-                ) : (
-                    <p className="text-sm text-gray-600">⚪Disconnected</p>
-                )}
-                {connectionStatus === 'connected' ? (<Button 
-                        variant="outline"
-                        onClick={() => {
-                            if (omnibus) {
-                                omnibus?.disconnect()
-                                setOmnibus(null)
-                            }
-                            setConnectionStatus('disconnected')
-                        }}
-                    >
-                        Disconnect
-                    </Button>
-                ) 
-                : (<Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                    <DialogTrigger asChild>
-                        <Button 
-                        onClick={() => setIsDialogOpen(true)}
-                        variant = "outline">Connect to Omnibus</Button>
-                    </DialogTrigger>
-                    <DialogContent className="sm:max-w-[425px]">
-                        <DialogHeader>
-                            <DialogTitle>Connect to Omnibus</DialogTitle>
-                            <DialogDescription>
-                                Enter the server address to connect to the Omnibus board.
-                            </DialogDescription>
-                        </DialogHeader>
-
-                        <div className="grid gap-4">
-                            <div className="grid gap-3">
-
-                                <Label htmlFor="serverAddress">Server Address</Label>
-                                
-                                <Input
-                                    id="serverAddress"
-                                    placeholder="e.g., localhost:8080 or http://192.168.1.100:8080"
-                                    value={inputValue}
-                                    onChange={(e) => setInputValue(e.target.value)}
-                                />
-
-                                {errorMessage && (
-                                    <p className="text-sm text-red-600">{errorMessage}</p>
-                                )}
-                                {connectionStatus === 'connecting' && (
-                                    <p className="text-sm text-blue-600">Connecting...</p>
-                                )}
-                            </div>
-                        </div>
-
-                        <DialogFooter>
-                            <Button
-                                onClick={async () => {
-                                        setConnectionStatus('connecting')
-                                        setErrorMessage('')
-                                        try {
-                                            const newOmnibus = communicator({ 
-                                                serverURL: inputValue,
-                                                allowExposeSocket: true 
-                                            })
-                                            setOmnibus(newOmnibus)
-                                            newOmnibus.socket?.on('connect_error', (err) => {
-                                                setErrorMessage('Failed to connect: ' + err.message)
-                                                setConnectionStatus('error')
-                                                newOmnibus.disconnect()
-                                                setOmnibus(null)
-                                            })
-                                            newOmnibus.socket?.on('connect', () => {
-                                                setConnectionStatus('connected')
-                                                setIsDialogOpen(false)
-                                            })
-                                        } catch (error) {
-                                            setErrorMessage('Failed to connect to Omnibus board.')
-                                            setConnectionStatus('error')
-                                        }
-                                    }
-                                }
-                                disabled={connectionStatus === 'connecting'}
-                            >
-                                Connect
-                            </Button>
-                        </DialogFooter>
-                    </DialogContent>
-                </Dialog>
-                    
-                )}
-            </div>
-            <div className="content">
-                
-            </div>
+            <ConnectToOmnibus />
+            <BoardStatusDashboard boardInfoArray={boardData} />
         </div>
-         </>
-     )
- }
-    export default App
+    )
+}
+
+export default App
