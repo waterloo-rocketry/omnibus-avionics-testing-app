@@ -15,7 +15,7 @@ function BoardStatusDashboard<T extends Record<keyof T, string | number>>({
             boardMsgPrio={x.msgPriority}
         ></BoardStatus>
     ))
-    return <div className="flex flex-row flex-wrap gap-4 p-4">{dashboardFields}</div>
+    return <>{dashboardFields}</>
 }
 
 export default BoardStatusDashboard
