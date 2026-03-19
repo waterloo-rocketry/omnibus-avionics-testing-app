@@ -1,5 +1,6 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { OmnibusProvider } from '@/components/OmnibusProvider';
 import App from '@/App';
 import { spawn } from 'child_process';
 
@@ -30,7 +31,11 @@ describe('App Integration Tests with Mock Server', () => {
 });
 
     it('successfully connects to mock server', async () => {
-        render(<App />);
+        render(
+            <OmnibusProvider>
+                <App />
+            </OmnibusProvider>
+        );
         
         // Open dialog
         const connectButton = screen.getByText(/Connect to Omnibus/i);
@@ -51,7 +56,11 @@ describe('App Integration Tests with Mock Server', () => {
     });
 
     it('successfully disconnects from mock server', async () => {
-        render(<App />);
+        render(
+            <OmnibusProvider>
+                <App />
+            </OmnibusProvider>
+        );
         
         // Connect first
         const connectButton = screen.getByText(/Connect to Omnibus/i);
