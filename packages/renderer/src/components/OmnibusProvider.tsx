@@ -20,6 +20,7 @@ export function OmnibusProvider({ children }: { children: ReactNode }) {
   const [errorMessage, setErrorMessage] = useState<string>('')
   const [omnibus, setOmnibus] = useState<OmnibusCommunicator | null>(null)
   const [serverURL, setServerURL] = useState<string | null>(null)
+  const [reconnectCounter, setReconnectCounter] = useState<number>(0)
 
   useEffect(() => {
     if (!serverURL) return
@@ -53,10 +54,11 @@ export function OmnibusProvider({ children }: { children: ReactNode }) {
       newOmnibus.disconnect()
       setOmnibus(null)
     }
-  }, [serverURL])
+  }, [serverURL, reconnectCounter])
 
   const connect = useCallback((url: string) => {
     setServerURL(url)
+    setReconnectCounter(c => c + 1)
   }, [])
 
   const disconnect = useCallback(() => {

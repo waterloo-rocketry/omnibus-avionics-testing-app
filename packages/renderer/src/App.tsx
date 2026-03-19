@@ -20,6 +20,7 @@ function App() {
   const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false)
 
   const handleConnect = () => {
+    if (!inputValue.trim()) return
     connect(inputValue)
     setIsDialogOpen(false)
   }
@@ -70,7 +71,7 @@ function App() {
               <DialogFooter>
                 <Button
                   onClick={handleConnect}
-                  disabled={connectionStatus === 'connecting'}
+                  disabled={connectionStatus === 'connecting' || !inputValue.trim()}
                 >
                   Connect
                 </Button>

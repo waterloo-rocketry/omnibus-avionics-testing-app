@@ -3,31 +3,47 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { OmnibusProvider } from '@/components/OmnibusProvider';
 import App from '@/App';
 import { spawn, ChildProcess } from 'child_process';
+import { fileURLToPath } from 'url';
+import { dirname, resolve } from 'path';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const SERVER_URL = 'http://localhost:8081';
+
+async function waitForServer(url: string, maxAttempts = 10): Promise<void> {
+    for (let i = 0; i < maxAttempts; i++) {
+        try {
+            await fetch(url);
+            return;
+        } catch {
+            await new Promise(resolve => setTimeout(resolve, 200));
+        }
+    }
+    throw new Error('Mock server failed to start');
+}
 
 describe('App Integration Tests with Mock Server', () => {
     let serverProcess: ChildProcess | null = null;
 
     beforeAll(async () => {
         // Start the mock server
-        serverProcess = spawn('node', ['tests/mock-backend/server.js'], {
-            cwd: process.cwd(),
+        const serverScript = resolve(__dirname, 'mock-backend/server.js');
+        serverProcess = spawn('node', [serverScript], {
             detached: true,
             stdio: 'ignore'
         });
-        
-        // Wait for server to start
-        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        await waitForServer(`${SERVER_URL}/socket.io/?EIO=4&transport=polling`);
     });
 
     afterAll(() => {
         // Stop the mock server
-        if (serverProcess) {
-            try {
-                process.kill(-serverProcess.pid!);
-            } catch {
-                // Server already stopped, that's fine
+        if (serverProcess != null && typeof serverProcess.pid === 'number') {
+                try {
+                    process.kill(-serverProcess.pid);
+                } catch {
+                    // Server already stopped, that's fine
+                }
             }
-        }
     });
 
     it('successfully connects to mock server', async () => {
@@ -43,7 +59,7 @@ describe('App Integration Tests with Mock Server', () => {
         
         // Enter server address
         const input = screen.getByLabelText(/Server Address/i);
-        fireEvent.change(input, { target: { value: 'http://localhost:8081' } });
+        fireEvent.change(input, { target: { value: SERVER_URL } });
         
         // Click connect
         const dialogConnectButton = screen.getByRole('button', { name: /^Connect$/i });
@@ -51,7 +67,7 @@ describe('App Integration Tests with Mock Server', () => {
         
         // Wait for connection
         await waitFor(() => {
-            expect(screen.getByText(/Connected to http:\/\/localhost:8081/i)).toBeDefined();
+            expect(screen.getByText(new RegExp(`Connected to ${SERVER_URL}`, 'i'))).toBeDefined();
         }, { timeout: 5000 });
     });
 
@@ -67,7 +83,7 @@ describe('App Integration Tests with Mock Server', () => {
         fireEvent.click(connectButton);
         
         const input = screen.getByLabelText(/Server Address/i);
-        fireEvent.change(input, { target: { value: 'http://localhost:8081' } });
+        fireEvent.change(input, { target: { value: SERVER_URL } });
         
         const dialogConnectButton = screen.getByRole('button', { name: /^Connect$/i });
         fireEvent.click(dialogConnectButton);
