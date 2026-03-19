@@ -19,5 +19,12 @@ io.on('connection', (socket) => {
     });
 });
 
+process.on('SIGTERM', () => {
+    io.close(() => process.exit(0));
+});
+process.on('SIGINT', () => {
+    io.close(() => process.exit(0));
+});
+
 console.log('Mock Omnibus server running on http://localhost:8081');
 console.log('   Using msgpack parser (matching omnibus-ts client)');

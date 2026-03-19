@@ -19,6 +19,7 @@ npm start
 
 ### Testing Connection
 
+<!-- markdownlint-disable MD034 -->
 \`\`\`javascript
 // In browser console
 const socket = io('http://localhost:8081');
@@ -31,6 +32,7 @@ socket.on('connect_error', (err) => {
     console.log('Connection error:', err);
 });
 \`\`\`
+<!-- markdownlint-enable MD034 -->
 
 ## Connection Logging
 

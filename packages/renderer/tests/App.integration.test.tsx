@@ -2,10 +2,10 @@ import { describe, expect, it, beforeAll, afterAll } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { OmnibusProvider } from '@/components/OmnibusProvider';
 import App from '@/App';
-import { spawn } from 'child_process';
+import { spawn, ChildProcess } from 'child_process';
 
 describe('App Integration Tests with Mock Server', () => {
-    let serverProcess: any;
+    let serverProcess: ChildProcess | null = null;
 
     beforeAll(async () => {
         // Start the mock server
@@ -20,15 +20,15 @@ describe('App Integration Tests with Mock Server', () => {
     });
 
     afterAll(() => {
-    // Stop the mock server
-    if (serverProcess) {
-        try {
-            process.kill(-serverProcess.pid);
-        } catch (err) {
-            // Server already stopped, that's fine
+        // Stop the mock server
+        if (serverProcess) {
+            try {
+                process.kill(-serverProcess.pid!);
+            } catch {
+                // Server already stopped, that's fine
+            }
         }
-    }
-});
+    });
 
     it('successfully connects to mock server', async () => {
         render(
