@@ -3,40 +3,31 @@ import './App.css'
 import type { BoardMessage } from '@/components/types.ts'
 import BoardStatusDashboard from './components/BoardStatus/BoardStatusDashboard'
 import ConnectToOmnibus from './components/ConnectToOmnibus'
-import { connectAvionicsSocket, disconnectAvionicsSocket } from '../tests/omnibusSocket'
-import { useAvionicsStore } from '@/store/omnibusStore'
+import { connectOmnibusSocket, disconnectOmnibusSocket } from '../tests/omnibusSocket'
+import { useOmnibusStore } from '@/store/omnibusStore'
+import { identifiers } from '@/components/types.ts'
+import { useShallow } from 'zustand/react/shallow'
 
 function App() {
     // setting up zustand store
-    const series = useAvionicsStore((state) => state.series)
+    const series = useOmnibusStore(useShallow((state) => state.series))
 
     useEffect(() => {
-        connectAvionicsSocket()
-        return () => disconnectAvionicsSocket()
+        connectOmnibusSocket()
+        return () => disconnectOmnibusSocket()
     }, [])
 
-    const boardData: BoardMessage<Record<string, string | number>>[] = [
-        {
-            boardTypeId: 'FlightController',
-            boardInstId: 'FC-01',
-            msgPriority: String(series['FC-01']?.msgPrio ?? 1),
-            msgType: 'telemetry',
-            data: {
-                status: series['FC-01']?.status ?? 'OK',
-                temperature: series['FC-01']?.value ?? 36.5,
-            },
-        },
-        {
-            boardTypeId: 'Telemetry',
-            boardInstId: 'TM-02',
-            msgPriority: String(series['TM-02']?.msgPrio ?? 2),
-            msgType: 'status',
-            data: {
-                status: series['TM-02']?.status ?? 'WARN',
-                voltage: series['TM-02']?.value ?? 3.7,
-            },
-        },
-    ]
+    const boardData = identifiers.map(({ type_id, inst_id }) => {
+        const key = `${type_id}-${inst_id}`
+        const msg = series[key]
+        return {
+            boardTypeId: type_id,
+            boardInstId: inst_id,
+            msgPriority: msg?.msgPrio ?? 'prio',
+            msgType: msg?.msgType ?? 'type',
+            data: (msg?.data as Record<string, number> | null) ?? null,
+        }
+    })
 
     return (
         <div className="App">
