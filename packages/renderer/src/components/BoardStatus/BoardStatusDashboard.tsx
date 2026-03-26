@@ -6,16 +6,21 @@ function BoardStatusDashboard<T extends Record<keyof T, string | number>>({
 }: {
     boardInfoArray: BoardMessage<T>[]
 }) {
-    const dashboardFields = boardInfoArray.map((x) => (
-        <BoardStatus
-            key={`${x.boardTypeId}-${x.boardInstId}`}
-            boardData={x}
-            boardTitle={x.boardTypeId}
-            boardInstId={x.boardInstId}
-            boardMsgPrio={x.msgPriority}
-        ></BoardStatus>
-    ))
-    return <>{dashboardFields}</>
+    return (
+        <div className="overflow-y-auto grid grid-cols-1 md:grid-cols-3 2xl:grid-cols-4 gap-4">
+            {boardInfoArray.map((x) => (
+                <div>
+                    <BoardStatus
+                        key={`${x.boardTypeId}-${x.boardInstId}`}
+                        boardData={x}
+                        boardTitle={x.boardTypeId}
+                        boardInstId={x.boardInstId}
+                        boardMsgPrio={x.msgPriority}
+                    ></BoardStatus>
+                </div>
+            ))}
+        </div>
+    )
 }
 
 export default BoardStatusDashboard
