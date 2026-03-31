@@ -1,19 +1,45 @@
-import { describe, expect, it } from 'vitest'
-import { render, fireEvent } from '@testing-library/react'
-import App from '@/App.tsx'
+import { describe, expect, it } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { OmnibusProvider } from '@/components/OmnibusProvider';
+import App from '@/App';
 
-describe('app main apge', () => {
-    it('renders app component', () => {
-        const component = render(<App />)
-        expect(component).toBeDefined()
-        expect(component.getByText('Count is 0')).toBeDefined()
-    })
-    it('counter increments', () => {
-        const component = render(<App />)
-        expect(component.getByText('Increment')).toBeDefined()
-        expect(component.getByText('Count is 0')).toBeDefined()
-        const button = component.getByText('Increment')
-        fireEvent.click(button)
-        expect(component.getByText('Count is 1')).toBeDefined()
-    })
-})
+function renderApp() {
+    return render(
+        <OmnibusProvider>
+            <App />
+        </OmnibusProvider>
+    );
+}
+
+describe('App Component', () => {
+    it('renders without crashing', () => {
+        renderApp();
+        expect(screen.getByText(/Disconnected/i)).toBeDefined();
+    });
+
+    it('shows Connect to Omnibus button initially', () => {
+        renderApp();
+        expect(screen.getByText(/Connect to Omnibus/i)).toBeDefined();
+    });
+
+    it('opens the connect dialog when Connect to Omnibus is clicked', () => {
+        renderApp();
+        fireEvent.click(screen.getByText(/Connect to Omnibus/i));
+        expect(screen.getByRole('dialog')).toBeDefined();
+        expect(screen.getByLabelText(/Server Address/i)).toBeDefined();
+    });
+
+    it('connect button in dialog is enabled when input has a value', () => {
+        renderApp();
+        fireEvent.click(screen.getByText(/Connect to Omnibus/i));
+        const input = screen.getByLabelText(/Server Address/i);
+        fireEvent.change(input, { target: { value: 'http://localhost:8081' } });
+        const connectBtn = screen.getByRole('button', { name: /^Connect$/i });
+        expect((connectBtn as HTMLButtonElement).disabled).toBe(false);
+    });
+
+    it('does not show Disconnect button initially', () => {
+        renderApp();
+        expect(screen.queryByText(/^Disconnect$/i)).toBeNull();
+    });
+});
