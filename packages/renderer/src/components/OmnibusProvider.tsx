@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { communicator } from '@waterloorocketry/omnibus-ts'
 
@@ -18,7 +18,7 @@ const OmnibusContext = createContext<OmnibusContextValue | null>(null)
 export function OmnibusProvider({ children }: { children: ReactNode }) {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected')
   const [errorMessage, setErrorMessage] = useState<string>('')
-  const [omnibus, setOmnibus] = useState<OmnibusCommunicator | null>(null)
+  const omnibusRef = useRef<OmnibusCommunicator | null>(null)
   const [serverURL, setServerURL] = useState<string | null>(null)
   const [reconnectCounter, setReconnectCounter] = useState<number>(0)
 
@@ -37,7 +37,7 @@ export function OmnibusProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    setOmnibus(newOmnibus)
+    omnibusRef.current = newOmnibus
 
     newOmnibus.socket.on('connect', () => {
       setConnectionStatus('connected')
@@ -47,12 +47,12 @@ export function OmnibusProvider({ children }: { children: ReactNode }) {
       setErrorMessage('Failed to connect: ' + err.message)
       setConnectionStatus('error')
       newOmnibus.disconnect()
-      setOmnibus(null)
+      omnibusRef.current = null
     })
 
     return () => {
       newOmnibus.disconnect()
-      setOmnibus(null)
+      omnibusRef.current = null
     }
   }, [serverURL, reconnectCounter])
 
@@ -62,14 +62,14 @@ export function OmnibusProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const disconnect = useCallback(() => {
-    omnibus?.disconnect()
-    setOmnibus(null)
+    omnibusRef.current?.disconnect()
+    omnibusRef.current = null
     setServerURL(null)
     setConnectionStatus('disconnected')
-  }, [omnibus])
+  }, [])
 
   return (
-    <OmnibusContext.Provider value={{ connectionStatus, errorMessage, omnibus, connect, disconnect }}>
+    <OmnibusContext.Provider value={{ connectionStatus, errorMessage, omnibus: omnibusRef.current, connect, disconnect }}>
       {children}
     </OmnibusContext.Provider>
   )

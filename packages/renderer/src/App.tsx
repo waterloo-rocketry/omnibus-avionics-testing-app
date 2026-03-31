@@ -33,7 +33,7 @@ function App() {
         ) : connectionStatus === 'connecting' ? (
           <p className="text-sm text-blue-600">🔵 Connecting...</p>
         ) : connectionStatus === 'error' ? (
-          <p className="text-sm text-red-600">🔴 Connection Error</p>
+          <p className="text-sm text-red-600">🔴 Connection Error{errorMessage && `: ${errorMessage}`}</p>
         ) : (
           <p className="text-sm text-gray-600">⚪ Disconnected</p>
         )}
