@@ -3,12 +3,15 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Mock Socket.IO server for testing Omnibus connections",
-  "main": "server.js",
+  "main": "server.ts",
   "scripts": {
-    "start": "node server.js"
+    "start": "tsx server.ts"
   },
   "dependencies": {
     "socket.io": "^4.8.3",
     "socket.io-msgpack-parser": "^3.0.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0"
   }
 }
