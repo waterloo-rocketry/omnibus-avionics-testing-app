@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { communicator } from '@waterloorocketry/omnibus-ts'
+import type { ParsleyMessage } from '@waterloorocketry/omnibus-ts'
+import { useOmnibusStore } from '@/store/omnibusStore'
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'error'
 type OmnibusCommunicator = ReturnType<typeof communicator>
@@ -8,7 +10,6 @@ type OmnibusCommunicator = ReturnType<typeof communicator>
 interface OmnibusContextValue {
     connectionStatus: ConnectionStatus
     errorMessage: string
-    omnibus: OmnibusCommunicator | null
     connect: (url: string) => void
     disconnect: () => void
 }
@@ -50,6 +51,13 @@ export function OmnibusProvider({ children }: { children: ReactNode }) {
             omnibusRef.current = null
         })
 
+        newOmnibus.receiver.receive<ParsleyMessage>("CAN/Parsley", (msg) => {
+            const typeID = msg.payload.boardTypeId
+            const instID = msg.payload.boardInstId
+            const key = `${typeID}-${instID}`
+            useOmnibusStore.getState().updateSeries(key, msg.payload)
+        })
+
         return () => {
             newOmnibus.disconnect()
             omnibusRef.current = null
@@ -69,21 +77,16 @@ export function OmnibusProvider({ children }: { children: ReactNode }) {
     }, [])
 
     return (
-        <OmnibusContext.Provider
-            value={{
-                connectionStatus,
-                errorMessage,
-                omnibus: omnibusRef.current,
-                connect,
-                disconnect,
-            }}
-        >
+        <OmnibusContext.Provider value={{ connectionStatus, errorMessage, connect, disconnect }}>
             {children}
         </OmnibusContext.Provider>
     )
 }
 
 export function useOmnibus(): OmnibusContextValue {
+    const ctx = useContext(OmnibusContext)
+    if (!ctx) throw new Error('useOmnibus must be used within OmnibusProvider')
+    return ctx
     const ctx = useContext(OmnibusContext)
     if (!ctx) throw new Error('useOmnibus must be used within OmnibusProvider')
     return ctx

@@ -1,31 +1,27 @@
-import { create } from 'zustand';
+import { create } from 'zustand'
 import { subscribeWithSelector } from 'zustand/middleware'
+import type { ParsleyMessage } from '@waterloorocketry/omnibus-ts'
 
-// temp object of data
-export interface LatestDataPoint {
-    msgPrio: number 
-    status: string
-    value: number
+type OmnibusDataPoint = ParsleyMessage<any>
+
+interface OmnibusStore {
+    series: Record<string, OmnibusDataPoint>
+    updateSeries: (key: string, dataPoint: OmnibusDataPoint) => void
+    updateMultipleSeries: (updates: Record<string, OmnibusDataPoint>) => void
 }
 
-interface AvionicsStore {
-    series: Record<string, LatestDataPoint>
-    updateSeries: (seriesName: string, dataPoint: LatestDataPoint) => void
-    updateMultipleSeries: (updates: Record<string, LatestDataPoint>) => void
-}
-
-export const useAvionicsStore = create<AvionicsStore>()(
+export const useOmnibusStore = create<OmnibusStore>()(
     subscribeWithSelector((set) => ({
         series: {},
 
-        updateSeries: (seriesName, dataPoint) =>
+        updateSeries: (key, dataPoint) =>
             set((state) => ({
-                series: { ...state.series, [seriesName]: dataPoint },
+                series: { ...state.series, [key]: dataPoint },
             })),
 
         updateMultipleSeries: (updates) =>
             set((state) => ({
                 series: { ...state.series, ...updates },
             })),
-    })),
+    }))
 )
