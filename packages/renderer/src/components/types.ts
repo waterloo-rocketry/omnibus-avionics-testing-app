@@ -4,11 +4,11 @@ export interface BoardMessage<T extends Record<keyof T, string | number>> {
     msgPriority: string
     msgType: string
     data: T | undefined | null
-};
+}
 
-interface Identifier {
-    type_id: string;
-    inst_id: string;
+export interface Identifier {
+    type_id: string
+    inst_id: string
 }
 
 export const identifiers: Identifier[] = [
