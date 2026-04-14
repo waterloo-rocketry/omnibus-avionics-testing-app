@@ -27,7 +27,7 @@ describe('App Integration Tests with Mock Server', () => {
     beforeAll(async () => {
         // Start the mock server
         const serverScript = resolve(__dirname, 'mock-backend/server.ts');
-        serverProcess = spawn('node', [serverScript], {
+        serverProcess = spawn('tsx', [serverScript], {
             detached: true,
             stdio: 'ignore',
         })

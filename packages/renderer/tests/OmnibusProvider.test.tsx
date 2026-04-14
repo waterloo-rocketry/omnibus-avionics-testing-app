@@ -1,27 +1,26 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { render, screen, act, waitFor } from '@testing-library/react'
 import { OmnibusProvider, useOmnibus } from '@/components/OmnibusProvider'
-import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { render, screen, act, waitFor } from '@testing-library/react'
-import { OmnibusProvider, useOmnibus } from '@/components/OmnibusProvider'
 
 // --- Hoist mocks so they're available when vi.mock factory runs ---
-const { mockOn, mockDisconnect, mockReceive, mockCommunicator, mockUpdateSeries } = vi.hoisted(() => {
-    const mockOn = vi.fn()
-    const mockDisconnect = vi.fn()
-    const mockUpdateSeries = vi.fn()
-    const mockReceive = vi.fn()
-    const mockCommunicator = vi.fn(() => ({
-        socket: { on: mockOn },
-        disconnect: mockDisconnect,
-        sender: { send: vi.fn() },
-        receiver: {
-            receive: mockReceive,
-            receiveAll: vi.fn(),
-        },
-    }))
-    return { mockOn, mockDisconnect, mockReceive, mockCommunicator, mockUpdateSeries }
-})
+const { mockOn, mockDisconnect, mockReceive, mockCommunicator, mockUpdateSeries } = vi.hoisted(
+    () => {
+        const mockOn = vi.fn()
+        const mockDisconnect = vi.fn()
+        const mockUpdateSeries = vi.fn()
+        const mockReceive = vi.fn()
+        const mockCommunicator = vi.fn(() => ({
+            socket: { on: mockOn },
+            disconnect: mockDisconnect,
+            sender: { send: vi.fn() },
+            receiver: {
+                receive: mockReceive,
+                receiveAll: vi.fn(),
+            },
+        }))
+        return { mockOn, mockDisconnect, mockReceive, mockCommunicator, mockUpdateSeries }
+    }
+)
 
 vi.mock('@waterloorocketry/omnibus-ts', () => ({
     communicator: mockCommunicator,
@@ -54,7 +53,6 @@ function emitReceiveEvent(channel: string, payload: unknown) {
 // --- Test component that exposes provider state ---
 function StatusDisplay() {
     const { connectionStatus, errorMessage, connect, disconnect } = useOmnibus()
-    const { connectionStatus, errorMessage, connect, disconnect } = useOmnibus()
     return (
         <div>
             <span data-testid="status">{connectionStatus}</span>
@@ -63,7 +61,6 @@ function StatusDisplay() {
             <button onClick={disconnect}>disconnect</button>
         </div>
     )
-    )
 }
 
 function renderWithProvider() {
@@ -71,7 +68,6 @@ function renderWithProvider() {
         <OmnibusProvider>
             <StatusDisplay />
         </OmnibusProvider>
-    )
     )
 }
 
@@ -97,17 +93,8 @@ describe('OmnibusProvider', () => {
         renderWithProvider()
         expect(screen.getByTestId('status').textContent).toBe('disconnected')
     })
-        renderWithProvider()
-        expect(screen.getByTestId('status').textContent).toBe('disconnected')
-    })
 
     it('sets status to connecting when connect() is called', async () => {
-        renderWithProvider()
-        act(() => {
-            screen.getByText('connect').click()
-        })
-        expect(screen.getByTestId('status').textContent).toBe('connecting')
-    })
         renderWithProvider()
         act(() => {
             screen.getByText('connect').click()
@@ -123,17 +110,7 @@ describe('OmnibusProvider', () => {
         act(() => {
             emitSocketEvent('connect')
         })
-        renderWithProvider()
-        act(() => {
-            screen.getByText('connect').click()
-        })
-        act(() => {
-            emitSocketEvent('connect')
-        })
         await waitFor(() => {
-            expect(screen.getByTestId('status').textContent).toBe('connected')
-        })
-    })
             expect(screen.getByTestId('status').textContent).toBe('connected')
         })
     })
@@ -146,18 +123,7 @@ describe('OmnibusProvider', () => {
         act(() => {
             emitSocketEvent('connect_error', { message: 'refused' })
         })
-        renderWithProvider()
-        act(() => {
-            screen.getByText('connect').click()
-        })
-        act(() => {
-            emitSocketEvent('connect_error', { message: 'refused' })
-        })
         await waitFor(() => {
-            expect(screen.getByTestId('status').textContent).toBe('error')
-            expect(screen.getByTestId('error').textContent).toContain('refused')
-        })
-    })
             expect(screen.getByTestId('status').textContent).toBe('error')
             expect(screen.getByTestId('error').textContent).toContain('refused')
         })
@@ -171,29 +137,12 @@ describe('OmnibusProvider', () => {
         act(() => {
             emitSocketEvent('connect_error', { message: 'refused' })
         })
-        renderWithProvider()
-        act(() => {
-            screen.getByText('connect').click()
-        })
-        act(() => {
-            emitSocketEvent('connect_error', { message: 'refused' })
-        })
         await waitFor(() => {
-            expect(mockDisconnect).toHaveBeenCalledOnce()
-        })
-    })
             expect(mockDisconnect).toHaveBeenCalledOnce()
         })
     })
 
     it('sets status to disconnected when disconnect() is called', async () => {
-        renderWithProvider()
-        act(() => {
-            screen.getByText('connect').click()
-        })
-        act(() => {
-            emitSocketEvent('connect')
-        })
         renderWithProvider()
         act(() => {
             screen.getByText('connect').click()

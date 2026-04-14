@@ -87,7 +87,4 @@ export function useOmnibus(): OmnibusContextValue {
     const ctx = useContext(OmnibusContext)
     if (!ctx) throw new Error('useOmnibus must be used within OmnibusProvider')
     return ctx
-    const ctx = useContext(OmnibusContext)
-    if (!ctx) throw new Error('useOmnibus must be used within OmnibusProvider')
-    return ctx
 }
