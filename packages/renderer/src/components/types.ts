@@ -17,3 +17,8 @@ export const identifiers: Identifier[] = [
     { type_id: 'TYPE-3', inst_id: 'INST-3' },
     { type_id: 'TYPE-4', inst_id: 'INST-4' },
 ]
+
+export interface data {
+    status: string
+    value: number
+}

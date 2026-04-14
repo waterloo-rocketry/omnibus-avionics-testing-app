@@ -5,6 +5,7 @@ import { useOmnibusStore } from '@/store/omnibusStore'
 import { identifiers } from '@/components/types.ts'
 import { useShallow } from 'zustand/react/shallow'
 import { OmnibusProvider } from './components/OmnibusProvider'
+import type { data } from '@/components/types.ts'
 
 function AppContent() {
     // setting up zustand store
@@ -18,7 +19,7 @@ function AppContent() {
             boardInstId: inst_id,
             msgPriority: msg?.msgPrio ?? 'prio',
             msgType: msg?.msgType ?? 'type',
-            data: (msg?.data as Record<string, number> | null) ?? null,
+            data: (msg?.data as data | null) ?? null,
         }
     })
 
