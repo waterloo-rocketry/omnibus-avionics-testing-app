@@ -56,3 +56,12 @@ thumbs.db
 /.idea/csv-plugin.xml
 
 test-results
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Claude temporary files
+.claude-tmp*
+*.claude-tmp
