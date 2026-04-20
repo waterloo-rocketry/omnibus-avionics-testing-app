@@ -48,9 +48,7 @@ describe('App Integration Tests with Mock Server', () => {
 
     it('successfully connects to mock server', async () => {
         render(
-            <OmnibusProvider>
-                <App />
-            </OmnibusProvider>
+            <App />
         )
 
         // Open dialog
@@ -78,9 +76,7 @@ describe('App Integration Tests with Mock Server', () => {
 
     it('successfully disconnects from mock server', async () => {
         render(
-            <OmnibusProvider>
-                <App />
-            </OmnibusProvider>
+            <App />
         )
 
         // Connect first

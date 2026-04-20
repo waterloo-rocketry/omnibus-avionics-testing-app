@@ -2,10 +2,10 @@ import './App.css'
 import BoardStatusDashboard from './components/BoardStatus/BoardStatusDashboard'
 import ConnectToOmnibus from './components/ConnectToOmnibus'
 import { useOmnibusStore } from '@/store/omnibusStore'
-import { identifiers } from '@/components/types.ts'
+import { identifiers } from '@/components/types'
 import { useShallow } from 'zustand/react/shallow'
 import { OmnibusProvider } from './components/OmnibusProvider'
-import type { data } from '@/components/types.ts'
+import type { DataFormat } from '@/components/types'
 
 function AppContent() {
     // setting up zustand store
@@ -19,7 +19,7 @@ function AppContent() {
             boardInstId: inst_id,
             msgPriority: msg?.msgPrio ?? 'prio',
             msgType: msg?.msgType ?? 'type',
-            data: (msg?.data as data | null) ?? null,
+            data: (msg?.data as DataFormat | null) ?? null,
         }
     })
 

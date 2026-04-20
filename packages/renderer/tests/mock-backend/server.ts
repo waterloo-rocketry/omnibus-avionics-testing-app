@@ -64,7 +64,7 @@ io.on('connection', (socket) => {
     const interval = setInterval(() => {
         const updates = generateSequentialUpdate()
         console.log(updates)
-        socket.emit('CAN/Parsley/mock-server', Date.now() / 1000, updates)
+        socket.emit('CAN/Parsley', Date.now() / 1000, updates)
     }, 500)
 
     socket.on('disconnect', () => {

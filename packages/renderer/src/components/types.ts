@@ -18,7 +18,7 @@ export const identifiers: Identifier[] = [
     { type_id: 'TYPE-4', inst_id: 'INST-4' },
 ]
 
-export interface data {
+export interface DataFormat {
     status: string
     value: number
 }
