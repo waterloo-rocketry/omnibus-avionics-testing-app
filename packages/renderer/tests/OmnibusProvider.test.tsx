@@ -3,20 +3,35 @@ import { render, screen, act, waitFor } from '@testing-library/react'
 import { OmnibusProvider, useOmnibus } from '@/components/OmnibusProvider'
 
 // --- Hoist mocks so they're available when vi.mock factory runs ---
-const { mockOn, mockDisconnect, mockCommunicator } = vi.hoisted(() => {
-    const mockOn = vi.fn()
-    const mockDisconnect = vi.fn()
-    const mockCommunicator = vi.fn(() => ({
-        socket: { on: mockOn },
-        disconnect: mockDisconnect,
-        sender: { send: vi.fn() },
-        receiver: { receive: vi.fn(), receiveAll: vi.fn() },
-    }))
-    return { mockOn, mockDisconnect, mockCommunicator }
-})
+const { mockOn, mockDisconnect, mockReceive, mockCommunicator, mockUpdateSeries } = vi.hoisted(
+    () => {
+        const mockOn = vi.fn()
+        const mockDisconnect = vi.fn()
+        const mockUpdateSeries = vi.fn()
+        const mockReceive = vi.fn()
+        const mockCommunicator = vi.fn(() => ({
+            socket: { on: mockOn },
+            disconnect: mockDisconnect,
+            sender: { send: vi.fn() },
+            receiver: {
+                receive: mockReceive,
+                receiveAll: vi.fn(),
+            },
+        }))
+        return { mockOn, mockDisconnect, mockReceive, mockCommunicator, mockUpdateSeries }
+    }
+)
 
 vi.mock('@waterloorocketry/omnibus-ts', () => ({
     communicator: mockCommunicator,
+}))
+
+vi.mock('@/store/omnibusStore', () => ({
+    useOmnibusStore: {
+        getState: () => ({
+            updateSeries: mockUpdateSeries,
+        }),
+    },
 }))
 
 // --- Helper to fire socket events registered via mockOn ---
@@ -25,6 +40,14 @@ function emitSocketEvent(eventName: string, ...args: unknown[]) {
     const handler = calls.find(([name]) => name === eventName)?.[1]
     if (!handler) throw new Error(`No handler registered for '${eventName}'`)
     handler(...args)
+}
+
+// --- Helper to fire receiver.receive handlers ---
+function emitReceiveEvent(channel: string, payload: unknown) {
+    const calls = mockReceive.mock.calls as [string, (msg: { payload: unknown }) => void][]
+    const handler = calls.find(([name]) => name === channel)?.[1]
+    if (!handler) throw new Error(`No handler registered for '${channel}'`)
+    handler({ payload })
 }
 
 // --- Test component that exposes provider state ---
@@ -53,11 +76,16 @@ describe('OmnibusProvider', () => {
         mockOn.mockClear()
         mockDisconnect.mockClear()
         mockCommunicator.mockClear()
+        mockReceive.mockClear()
+        mockUpdateSeries.mockClear()
         mockCommunicator.mockReturnValue({
             socket: { on: mockOn },
             disconnect: mockDisconnect,
             sender: { send: vi.fn() },
-            receiver: { receive: vi.fn(), receiveAll: vi.fn() },
+            receiver: {
+                receive: mockReceive,
+                receiveAll: vi.fn(),
+            },
         })
     })
 
@@ -138,8 +166,11 @@ describe('OmnibusProvider', () => {
             socket: undefined,
             disconnect: mockDisconnect,
             sender: { send: vi.fn() },
-            receiver: { receive: vi.fn(), receiveAll: vi.fn() },
-        })
+            receiver: {
+                receive: mockReceive,
+                receiveAll: vi.fn(),
+            },
+        } as any)
         renderWithProvider()
         act(() => {
             screen.getByText('connect').click()
@@ -148,5 +179,29 @@ describe('OmnibusProvider', () => {
             expect(screen.getByTestId('status').textContent).toBe('error')
         })
         expect(mockDisconnect).toHaveBeenCalledOnce()
+    })
+
+    it('handles CAN/Parsley message and calls updateSeries', async () => {
+        renderWithProvider()
+        act(() => {
+            screen.getByText('connect').click()
+        })
+        await waitFor(() => {
+            expect(mockReceive).toHaveBeenCalledWith('CAN/Parsley', expect.any(Function))
+        })
+        act(() => {
+            emitReceiveEvent('CAN/Parsley', {
+                boardTypeId: 'type1',
+                boardInstId: 'inst1',
+                data: { status: 'OK', value: 42 },
+            })
+        })
+        await waitFor(() => {
+            expect(mockUpdateSeries).toHaveBeenCalledWith('type1-inst1', {
+                boardTypeId: 'type1',
+                boardInstId: 'inst1',
+                data: { status: 'OK', value: 42 },
+            })
+        })
     })
 })
