@@ -2,24 +2,20 @@ import './App.css'
 import BoardStatusDashboard from './components/BoardStatus/BoardStatusDashboard'
 import ConnectToOmnibus from './components/ConnectToOmnibus'
 import { useOmnibusStore } from '@/store/omnibusStore'
-import { identifiers } from '@/components/types'
 import { useShallow } from 'zustand/react/shallow'
 import { OmnibusProvider } from './components/OmnibusProvider'
-import type { DataFormat } from '@/components/types'
 
 function AppContent() {
     // setting up zustand store
     const series = useOmnibusStore(useShallow((state) => state.series))
 
-    const boardData = identifiers.map(({ type_id, inst_id }) => {
-        const key = `${type_id}-${inst_id}`
-        const msg = series[key]
+    const boardData = Object.values(series).map((msg) => {
         return {
-            boardTypeId: type_id,
-            boardInstId: inst_id,
-            msgPriority: msg?.msgPrio ?? 'prio',
-            msgType: msg?.msgType ?? 'type',
-            data: (msg?.data as DataFormat | null) ?? null,
+            boardTypeId: msg.boardTypeId,
+            boardInstId: msg.boardInstId,
+            msgPriority: msg.msgPrio,
+            msgType: msg.msgType,
+            data: (msg.data as Record<string, string | number> | null) ?? null,
         }
     })
 
