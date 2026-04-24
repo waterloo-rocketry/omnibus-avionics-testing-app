@@ -2,12 +2,11 @@ import './App.css'
 import BoardStatusDashboard from './components/BoardStatus/BoardStatusDashboard'
 import ConnectToOmnibus from './components/ConnectToOmnibus'
 import { useOmnibusStore } from '@/store/omnibusStore'
-import { useShallow } from 'zustand/react/shallow'
 import { OmnibusProvider } from './components/OmnibusProvider'
 
 function AppContent() {
     // setting up zustand store
-    const series = useOmnibusStore(useShallow((state) => state.series))
+    const series = useOmnibusStore((state) => state.series)
 
     const boardData = Object.values(series).map((msg) => {
         return {
