@@ -7,7 +7,7 @@ interface Identifier {
     inst_id: string
 }
 
-export const identifiers: Identifier[] = [
+const identifiers: Identifier[] = [
     { type_id: 'TYPE-1', inst_id: 'INST-1' },
     { type_id: 'TYPE-2', inst_id: 'INST-2' },
     { type_id: 'TYPE-3', inst_id: 'INST-3' },

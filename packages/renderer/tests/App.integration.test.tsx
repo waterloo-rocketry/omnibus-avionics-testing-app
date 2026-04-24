@@ -1,6 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { OmnibusProvider } from '@/components/OmnibusProvider'
 import App from '@/App'
 import { spawn, ChildProcess } from 'child_process'
 import { fileURLToPath } from 'url'
