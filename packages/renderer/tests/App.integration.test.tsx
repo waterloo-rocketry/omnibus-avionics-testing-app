@@ -4,17 +4,18 @@ import App from '@/App'
 import { spawn, ChildProcess } from 'child_process'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
+import { existsSync } from 'fs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const SERVER_URL = 'http://localhost:8081'
 
-async function waitForServer(url: string, maxAttempts = 10): Promise<void> {
+async function waitForServer(url: string, maxAttempts = 25, intervalMs = 400): Promise<void> {
     for (let i = 0; i < maxAttempts; i++) {
         try {
             await fetch(url)
             return
         } catch {
-            await new Promise((resolve) => setTimeout(resolve, 200))
+            await new Promise((resolve) => setTimeout(resolve, intervalMs))
         }
     }
     throw new Error('Mock server failed to start')
@@ -25,9 +26,14 @@ describe('App Integration Tests with Mock Server', () => {
 
     beforeAll(async () => {
         // Start the mock server
-        const serverScript = resolve(__dirname, 'mock-backend/server.ts');
-        serverProcess = spawn('tsx', [serverScript], {
-            detached: true,
+        const serverScript = resolve(__dirname, 'mock-backend/server.ts')
+        const repoRoot = resolve(__dirname, '../../../')
+        const tsxBin = resolve(repoRoot, 'node_modules/.bin/tsx')
+        const tsxCmd = tsxBin + '.cmd'
+        const executable = existsSync(tsxCmd) ? tsxCmd : tsxBin
+        serverProcess = spawn(executable, [serverScript], {
+            shell: true,
+            detached: false,
             stdio: 'ignore',
         })
 
@@ -36,9 +42,9 @@ describe('App Integration Tests with Mock Server', () => {
 
     afterAll(() => {
         // Stop the mock server
-        if (serverProcess != null && typeof serverProcess.pid === 'number') {
+        if (serverProcess != null) {
             try {
-                process.kill(-serverProcess.pid)
+                serverProcess.kill()
             } catch {
                 // Server already stopped, that's fine
             }
