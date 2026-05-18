@@ -1,6 +1,5 @@
 import { describe, expect, it, beforeAll, afterAll } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import { OmnibusProvider } from '@/components/OmnibusProvider'
 import App from '@/App'
 import { spawn, ChildProcess } from 'child_process'
 import { fileURLToPath } from 'url'
@@ -26,8 +25,8 @@ describe('App Integration Tests with Mock Server', () => {
 
     beforeAll(async () => {
         // Start the mock server
-        const serverScript = resolve(__dirname, 'mock-backend/server.js')
-        serverProcess = spawn('node', [serverScript], {
+        const serverScript = resolve(__dirname, 'mock-backend/server.ts');
+        serverProcess = spawn('tsx', [serverScript], {
             detached: true,
             stdio: 'ignore',
         })
@@ -48,9 +47,7 @@ describe('App Integration Tests with Mock Server', () => {
 
     it('successfully connects to mock server', async () => {
         render(
-            <OmnibusProvider>
-                <App />
-            </OmnibusProvider>
+            <App />
         )
 
         // Open dialog
@@ -78,9 +75,7 @@ describe('App Integration Tests with Mock Server', () => {
 
     it('successfully disconnects from mock server', async () => {
         render(
-            <OmnibusProvider>
-                <App />
-            </OmnibusProvider>
+            <App />
         )
 
         // Connect first
