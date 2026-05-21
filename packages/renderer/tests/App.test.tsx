@@ -42,4 +42,14 @@ describe('App Component', () => {
         renderApp()
         expect(screen.queryByText(/^Disconnect$/i)).toBeNull()
     })
+
+    it('renders CanSender component', () => {
+        renderApp()
+        expect(screen.getByText('msg_type')).toBeDefined()
+        expect(screen.getByText('msg_prio')).toBeDefined()
+        expect(screen.getByText('board_type_id')).toBeDefined()
+        expect(screen.getByText('board_inst_id')).toBeDefined()
+        expect(screen.getByText('time (s)')).toBeDefined()
+        expect(screen.getByText('SEND')).toBeDefined()
+    })
 })

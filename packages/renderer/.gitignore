@@ -24,3 +24,12 @@ dist-ssr
 *.sw?
 
 coverage
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Claude temporary files
+.claude-tmp*
+*.claude-tmp

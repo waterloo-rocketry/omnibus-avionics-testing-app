@@ -3,6 +3,7 @@ import BoardStatusDashboard from './components/BoardStatus/BoardStatusDashboard'
 import ConnectToOmnibus from './components/ConnectToOmnibus'
 import { useOmnibusStore } from '@/store/omnibusStore'
 import { OmnibusProvider } from './components/OmnibusProvider'
+import { CanSender } from '@/components/CanSender'
 
 function AppContent() {
     // setting up zustand store
@@ -22,6 +23,7 @@ function AppContent() {
         <div className="App">
             <ConnectToOmnibus />
             <BoardStatusDashboard boardInfoArray={boardData} />
+            <CanSender />
         </div>
     )
 }
