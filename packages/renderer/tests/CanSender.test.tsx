@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { CanSender } from '@/components/CanSender/CanSender'
 import { useCanSenderStore } from '@/store/canSenderStore'
@@ -278,6 +278,110 @@ describe('CanSender – sending', () => {
         expect(useCanSenderStore.getState().addToHistory).toHaveBeenCalledWith(
             expect.objectContaining({ status: 'error', errorMessage: 'oops' })
         )
+    })
+})
+
+describe('CanSender – save favorite', () => {
+    beforeEach(() => {
+        mockSendCommand.mockReset()
+        // Reset the getState addFavorite mock so call counts are clean
+        vi.mocked(useCanSenderStore.getState().addFavorite).mockReset()
+    })
+
+    it('saves a favorite with custom label via the dialog', () => {
+        render(<CanSender />)
+        fillRequiredFields()
+
+        fireEvent.click(screen.getByTitle('Save as favorite'))
+        fireEvent.change(screen.getByPlaceholderText(/Actuate valve/i), {
+            target: { value: 'My Command' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: /^Save$/ }))
+
+        const addFavorite = useCanSenderStore.getState().addFavorite
+        expect(addFavorite).toHaveBeenCalledOnce()
+        expect((addFavorite as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe('My Command')
+        expect((addFavorite as ReturnType<typeof vi.fn>).mock.calls[0][1].boardTypeId).toBe('SENSOR_BOARD')
+    })
+
+    it('uses board_type_id/msg_type as default label when label is empty', () => {
+        render(<CanSender />)
+        fillRequiredFields()
+
+        fireEvent.click(screen.getByTitle('Save as favorite'))
+        // leave label empty, click Save
+        fireEvent.click(screen.getByRole('button', { name: /^Save$/ }))
+
+        const addFavorite = useCanSenderStore.getState().addFavorite
+        expect(addFavorite).toHaveBeenCalledOnce()
+        expect((addFavorite as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe('SENSOR_BOARD/ACTUATE')
+    })
+
+    it('does not save when required fields are invalid', () => {
+        render(<CanSender />)
+        // Don't fill required fields — open dialog and try to save
+        fireEvent.click(screen.getByTitle('Save as favorite'))
+        fireEvent.click(screen.getByRole('button', { name: /^Save$/ }))
+
+        expect(useCanSenderStore.getState().addFavorite).not.toHaveBeenCalled()
+    })
+})
+
+describe('CanSender – parsley instance dropdown', () => {
+    // These tests need parsleyInstances to persist across re-renders triggered
+    // by field changes, so we set a persistent mock for the whole describe block
+    // and restore the default afterwards.
+    beforeEach(() => {
+        mockSendCommand.mockReset()
+        vi.mocked(useOmnibus).mockReturnValue({
+            connectionStatus: 'connected',
+            errorMessage: '',
+            parsleyInstances: ['host1/usb/COM3', 'host1/usb/COM4'],
+            connect: vi.fn(),
+            disconnect: vi.fn(),
+            sendCommand: mockSendCommand,
+        })
+    })
+
+    afterEach(() => {
+        vi.mocked(useOmnibus).mockReturnValue({
+            connectionStatus: 'connected',
+            errorMessage: '',
+            parsleyInstances: [],
+            connect: vi.fn(),
+            disconnect: vi.fn(),
+            sendCommand: mockSendCommand,
+        })
+    })
+
+    it('renders a select dropdown when parsleyInstances are available', () => {
+        render(<CanSender />)
+        const selects = screen.getAllByRole('combobox')
+        // Two comboboxes: msg_prio and parsley instance
+        expect(selects.length).toBe(2)
+        const parsleySelect = selects[1] as HTMLSelectElement
+        const options = Array.from(parsleySelect.options).map((o) => o.value)
+        expect(options).toContain('host1/usb/COM3')
+        expect(options).toContain('host1/usb/COM4')
+    })
+
+    it('selecting a parsley instance sets the field value', () => {
+        render(<CanSender />)
+        const selects = screen.getAllByRole('combobox')
+        fireEvent.change(selects[1], { target: { value: 'host1/usb/COM3' } })
+        expect((selects[1] as HTMLSelectElement).value).toBe('host1/usb/COM3')
+    })
+
+    it('sends command with selected parsley instance', () => {
+        render(<CanSender />)
+        fireEvent.change(screen.getByPlaceholderText(/e\.g\. SENSOR_BOARD/i), { target: { value: 'SENSOR_BOARD' } })
+        fireEvent.change(screen.getByPlaceholderText(/e\.g\. 0/i), { target: { value: '0' } })
+        fireEvent.change(screen.getByPlaceholderText(/e\.g\. ACTUATE/i), { target: { value: 'ACTUATE' } })
+        const selects = screen.getAllByRole('combobox')
+        fireEvent.change(selects[1], { target: { value: 'host1/usb/COM3' } })
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        expect(mockSendCommand).toHaveBeenCalledOnce()
+        expect(mockSendCommand.mock.calls[0][0].parsley).toBe('host1/usb/COM3')
     })
 })
 
