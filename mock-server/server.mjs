@@ -9,7 +9,7 @@
  * Usage:
  *   cd mock-server && npm install && npm start
  *
- * Then in the app, click "Connect to Omnibus" and enter: http://localhost:8081
+ * Then in the app, click "Connect to Omnibus" and enter: http://localhost:8082
  */
 
 import { createServer } from 'http'
