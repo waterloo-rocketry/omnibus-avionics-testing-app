@@ -1,7 +1,7 @@
 /**
  * Mock Omnibus server for manual CAN sender testing.
  *
- * - Accepts connections from the app (connect to http://localhost:8081)
+ * - Accepts connections from the app (connect to http://localhost:8082)
  * - Logs every CAN/Commands message the app sends
  * - Emits a handful of fake CAN/Parsley board-status messages on connect
  *   so the board status panel populates too
@@ -75,9 +75,6 @@ io.on('connection', (socket) => {
             console.log('\n[mock] ← CAN/Commands received:')
             console.log('  timestamp:', timestamp)
             console.log('  payload:  ', JSON.stringify(payload, null, 4))
-
-            // Echo it back as a CAN/Parsley update on the target board so the
-            // board status panel reflects the command was "received"
         } else {
             console.log(`[mock] ← ${channel}:`, JSON.stringify(payload))
         }
