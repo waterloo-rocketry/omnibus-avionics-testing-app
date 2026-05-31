@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { communicator } from '@waterloorocketry/omnibus-ts'
-import type { ParsleyMessage } from '@waterloorocketry/omnibus-ts'
+import type { CANCommandMessage, ParsleyHeartbeatMessage, ParsleyMessage } from '@waterloorocketry/omnibus-ts'
 import { useOmnibusStore } from '@/store/omnibusStore'
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'connecting' | 'error'
@@ -10,8 +10,10 @@ type OmnibusCommunicator = ReturnType<typeof communicator>
 interface OmnibusContextValue {
     connectionStatus: ConnectionStatus
     errorMessage: string
+    parsleyInstances: string[]
     connect: (url: string) => void
     disconnect: () => void
+    sendCommand: (cmd: CANCommandMessage) => void
 }
 
 const OmnibusContext = createContext<OmnibusContextValue | null>(null)
@@ -19,6 +21,7 @@ const OmnibusContext = createContext<OmnibusContextValue | null>(null)
 export function OmnibusProvider({ children }: { children: ReactNode }) {
     const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected')
     const [errorMessage, setErrorMessage] = useState<string>('')
+    const [parsleyInstances, setParsleyInstances] = useState<string[]>([])
     const omnibusRef = useRef<OmnibusCommunicator | null>(null)
     const [serverURL, setServerURL] = useState<string | null>(null)
     const [reconnectCounter, setReconnectCounter] = useState<number>(0)
@@ -58,9 +61,20 @@ export function OmnibusProvider({ children }: { children: ReactNode }) {
             useOmnibusStore.getState().updateSeries(key, msg.payload)
         })
 
+        newOmnibus.receiver.receive<ParsleyHeartbeatMessage>("Parsley/Health", (msg) => {
+            const { id, health } = msg.payload
+            setParsleyInstances((prev) => {
+                if (health === 'Healthy') {
+                    return prev.includes(id) ? prev : [...prev, id]
+                }
+                return prev.filter((i) => i !== id)
+            })
+        })
+
         return () => {
             newOmnibus.disconnect()
             omnibusRef.current = null
+            setParsleyInstances([])
         }
     }, [serverURL, reconnectCounter])
 
@@ -74,10 +88,20 @@ export function OmnibusProvider({ children }: { children: ReactNode }) {
         omnibusRef.current = null
         setServerURL(null)
         setConnectionStatus('disconnected')
+        setParsleyInstances([])
+    }, [])
+
+    const sendCommand = useCallback((cmd: CANCommandMessage) => {
+        if (!omnibusRef.current) throw new Error('Not connected to Omnibus')
+        omnibusRef.current.sender.send<CANCommandMessage>({
+            channel: 'CAN/Commands',
+            timestamp: Date.now(),
+            payload: cmd,
+        })
     }, [])
 
     return (
-        <OmnibusContext.Provider value={{ connectionStatus, errorMessage, connect, disconnect }}>
+        <OmnibusContext.Provider value={{ connectionStatus, errorMessage, parsleyInstances, connect, disconnect, sendCommand }}>
             {children}
         </OmnibusContext.Provider>
     )

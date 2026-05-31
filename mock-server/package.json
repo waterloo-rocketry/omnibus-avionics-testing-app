@@ -1,0 +1,13 @@
+{
+  "name": "omnibus-mock-server",
+  "version": "1.0.0",
+  "description": "Mock Omnibus server for local CAN sender testing",
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "dependencies": {
+    "socket.io": "^4.8.1",
+    "socket.io-msgpack-parser": "^3.0.2"
+  }
+}

@@ -1,132 +1,414 @@
-import { describe, expect, it, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { CanSender } from '@/components/CanSender/CanSender'
+import { useCanSenderStore } from '@/store/canSenderStore'
+import { useOmnibus } from '@/components/OmnibusProvider'
+import type { CANCommandMessage } from '@waterloorocketry/omnibus-ts'
 
-describe('CanSender Component', () => {
-    it('renders all form fields', () => {
+// ---------------------------------------------------------------------------
+// Mock useOmnibus so we don't need a real socket connection
+// ---------------------------------------------------------------------------
+const mockSendCommand = vi.fn()
+
+vi.mock('@/components/OmnibusProvider', () => ({
+    useOmnibus: vi.fn(() => ({
+        connectionStatus: 'connected',
+        errorMessage: '',
+        parsleyInstances: [],
+        connect: vi.fn(),
+        disconnect: vi.fn(),
+        sendCommand: mockSendCommand,
+    })),
+}))
+
+// Mock canSenderStore to isolate component from persistence side-effects
+vi.mock('@/store/canSenderStore', () => {
+    const addToHistory = vi.fn()
+    const addFavorite = vi.fn()
+    const removeFavorite = vi.fn()
+    const clearHistory = vi.fn()
+    return {
+        useCanSenderStore: Object.assign(
+            vi.fn(() => ({ history: [], favorites: [], addToHistory, addFavorite, removeFavorite, clearHistory })),
+            {
+                getState: vi.fn(() => ({ addToHistory, addFavorite, removeFavorite, clearHistory })),
+            }
+        ),
+    }
+})
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function fillRequiredFields() {
+    fireEvent.change(screen.getByPlaceholderText(/e\.g\. SENSOR_BOARD/i), {
+        target: { value: 'SENSOR_BOARD' },
+    })
+    fireEvent.change(screen.getByPlaceholderText(/e\.g\. 0/i), {
+        target: { value: '0' },
+    })
+    fireEvent.change(screen.getByPlaceholderText(/e\.g\. ACTUATE/i), {
+        target: { value: 'ACTUATE' },
+    })
+    fireEvent.change(screen.getByPlaceholderText(/hostname\/usb\/COM3/i), {
+        target: { value: 'myhostname/usb/COM3' },
+    })
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+describe('CanSender – rendering', () => {
+    it('renders all form fields and SEND button', () => {
         render(<CanSender />)
-
-        expect(screen.getByLabelText(/msg_type/i)).toBeDefined()
-        expect(screen.getByLabelText(/msg_prio/i)).toBeDefined()
-        expect(screen.getByLabelText(/board_type_id/i)).toBeDefined()
-        expect(screen.getByLabelText(/board_inst_id/i)).toBeDefined()
-        expect(screen.getByLabelText(/time/i)).toBeDefined()
-        expect(screen.getByRole('button', { name: /send/i })).toBeDefined()
+        expect(screen.getByPlaceholderText(/e\.g\. SENSOR_BOARD/i)).toBeDefined()
+        expect(screen.getByPlaceholderText(/e\.g\. 0/i)).toBeDefined()
+        expect(screen.getByPlaceholderText(/e\.g\. ACTUATE/i)).toBeDefined()
+        expect(screen.getByRole('combobox')).toBeDefined() // msg_prio select (no parsley instances → text input)
+        expect(screen.getByPlaceholderText(/DEADBEEF/i)).toBeDefined()
+        expect(screen.getByPlaceholderText(/hostname\/usb\/COM3/i)).toBeDefined()
+        expect(screen.getByRole('button', { name: /^SEND$/ })).toBeDefined()
     })
 
-    it('displays correct placeholders', () => {
+    it('msg_prio select has all four priority options', () => {
         render(<CanSender />)
-
-        const strInputs = screen.getAllByPlaceholderText('str')
-        expect(strInputs.length).toBe(4)
-        expect(screen.getByPlaceholderText('int')).toBeDefined()
+        const select = screen.getByRole('combobox') as HTMLSelectElement
+        const options = Array.from(select.options).map((o) => o.value)
+        expect(options).toEqual(['LOW', 'MEDIUM', 'HIGH', 'HIGHEST'])
     })
 
-    it('accepts valid JSON input', () => {
+    it('SEND button is disabled when not connected', () => {
+        vi.mocked(useOmnibus).mockReturnValueOnce({
+            connectionStatus: 'disconnected',
+            errorMessage: '',
+            parsleyInstances: [],
+            connect: vi.fn(),
+            disconnect: vi.fn(),
+            sendCommand: mockSendCommand,
+        })
         render(<CanSender />)
-
-        const msgTypeInput = screen.getByLabelText(/msg_type/i) as HTMLInputElement
-        fireEvent.change(msgTypeInput, { target: { value: '{"type": 1}' } })
-
-        expect(msgTypeInput.value).toBe('{"type": 1}')
+        const btn = screen.getByRole('button', { name: /^SEND$/ }) as HTMLButtonElement
+        expect(btn.disabled).toBe(true)
     })
 
-    it('shows validation error for non-integer time', async () => {
+    it('shows "Connect to Omnibus" hint when disconnected', () => {
+        vi.mocked(useOmnibus).mockReturnValueOnce({
+            connectionStatus: 'disconnected',
+            errorMessage: '',
+            parsleyInstances: [],
+            connect: vi.fn(),
+            disconnect: vi.fn(),
+            sendCommand: mockSendCommand,
+        })
         render(<CanSender />)
+        expect(screen.getByText(/link to omnibus/i)).toBeDefined()
+    })
+})
 
-        const timeInput = screen.getByLabelText(/time/i)
-        const submitButton = screen.getByRole('button', { name: /send/i })
+describe('CanSender – collapsible', () => {
+    it('hides form fields after clicking the toggle', () => {
+        render(<CanSender />)
+        fireEvent.click(screen.getByRole('button', { name: /CAN Sender/i }))
+        expect(screen.queryByPlaceholderText(/e\.g\. SENSOR_BOARD/i)).toBeNull()
+    })
 
-        fireEvent.change(timeInput, { target: { value: 'notanumber' } })
-        fireEvent.click(submitButton)
+    it('shows form fields again after toggling twice', () => {
+        render(<CanSender />)
+        const toggle = screen.getByRole('button', { name: /CAN Sender/i })
+        fireEvent.click(toggle)
+        fireEvent.click(toggle)
+        expect(screen.getByPlaceholderText(/e\.g\. SENSOR_BOARD/i)).toBeDefined()
+    })
+})
 
-        await waitFor(() => {
-            expect(screen.getByText(/Must be a valid integer/i)).toBeDefined()
+describe('CanSender – validation', () => {
+    beforeEach(() => {
+        mockSendCommand.mockReset()
+    })
+
+    it('shows required errors when sending with empty fields', () => {
+        render(<CanSender />)
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        const errors = screen.getAllByText('Required')
+        expect(errors.length).toBe(4) // board_type_id, board_inst_id, msg_type, parsley_instance
+    })
+
+    it('shows payload error for invalid hex string', () => {
+        render(<CanSender />)
+        fillRequiredFields()
+        fireEvent.change(screen.getByPlaceholderText(/DEADBEEF/i), {
+            target: { value: 'ZZZZ' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        expect(screen.getByText(/valid JSON or an even-length hex string/i)).toBeDefined()
+    })
+
+    it('shows payload error for odd-length hex string', () => {
+        render(<CanSender />)
+        fillRequiredFields()
+        fireEvent.change(screen.getByPlaceholderText(/DEADBEEF/i), {
+            target: { value: 'DEA' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        expect(screen.getByText(/valid JSON or an even-length hex string/i)).toBeDefined()
+    })
+
+    it('shows payload error when hex exceeds 8 bytes', () => {
+        render(<CanSender />)
+        fillRequiredFields()
+        fireEvent.change(screen.getByPlaceholderText(/DEADBEEF/i), {
+            target: { value: 'DEADBEEFDEADBEEFFF' }, // 9 bytes
+        })
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        expect(screen.getByText(/exceeds 8 bytes/i)).toBeDefined()
+    })
+
+    it('does not call sendCommand when validation fails', () => {
+        render(<CanSender />)
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        expect(mockSendCommand).not.toHaveBeenCalled()
+    })
+
+    it('clears field error when user corrects the input', () => {
+        render(<CanSender />)
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        expect(screen.getAllByText('Required').length).toBeGreaterThan(0)
+        fireEvent.change(screen.getByPlaceholderText(/e\.g\. SENSOR_BOARD/i), {
+            target: { value: 'BOARD' },
+        })
+        // Errors for other fields still shown but board_type_id error gone
+        const remaining = screen.getAllByText('Required')
+        expect(remaining.length).toBe(3)
+    })
+})
+
+describe('CanSender – sending', () => {
+    beforeEach(() => {
+        mockSendCommand.mockReset()
+    })
+
+    it('calls sendCommand with correct structure on valid submit', () => {
+        render(<CanSender />)
+        fillRequiredFields()
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+
+        expect(mockSendCommand).toHaveBeenCalledOnce()
+        const cmd: CANCommandMessage = mockSendCommand.mock.calls[0][0]
+        expect(cmd.boardTypeId).toBe('SENSOR_BOARD')
+        expect(cmd.boardInstId).toBe('0')
+        expect(cmd.msgType).toBe('ACTUATE')
+        expect(cmd.msgPrio).toBe('MEDIUM') // default
+        expect(cmd.canMsg).toBeNull()
+        expect(cmd.parsley).toBe('myhostname/usb/COM3')
+        expect(cmd.messageFormatVersion).toBe(2)
+    })
+
+    it('sends correct priority when changed', () => {
+        render(<CanSender />)
+        fillRequiredFields()
+        fireEvent.change(screen.getByRole('combobox'), { target: { value: 'HIGH' } })
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        const cmd: CANCommandMessage = mockSendCommand.mock.calls[0][0]
+        expect(cmd.msgPrio).toBe('HIGH')
+    })
+
+    it('parses hex payload into byte array', () => {
+        render(<CanSender />)
+        fillRequiredFields()
+        fireEvent.change(screen.getByPlaceholderText(/DEADBEEF/i), {
+            target: { value: '8FFF' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        const cmd: CANCommandMessage = mockSendCommand.mock.calls[0][0]
+        expect(cmd.canMsg).toEqual([0x8f, 0xff])
+    })
+
+    it('parses JSON payload into object', () => {
+        render(<CanSender />)
+        fillRequiredFields()
+        fireEvent.change(screen.getByPlaceholderText(/DEADBEEF/i), {
+            target: { value: '{"key": 42}' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        const cmd: CANCommandMessage = mockSendCommand.mock.calls[0][0]
+        expect(cmd.canMsg).toEqual({ key: 42 })
+    })
+
+    it('shows success status after send', () => {
+        render(<CanSender />)
+        fillRequiredFields()
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        expect(screen.getByText(/command sent/i)).toBeDefined()
+    })
+
+    it('shows error status when sendCommand throws', () => {
+        mockSendCommand.mockImplementationOnce(() => {
+            throw new Error('Not connected to Omnibus')
+        })
+        render(<CanSender />)
+        fillRequiredFields()
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        expect(screen.getByText(/not connected to omnibus/i)).toBeDefined()
+    })
+
+    it('does not clear field values after a successful send', () => {
+        render(<CanSender />)
+        fillRequiredFields()
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        const input = screen.getByPlaceholderText(/e\.g\. SENSOR_BOARD/i) as HTMLInputElement
+        expect(input.value).toBe('SENSOR_BOARD')
+    })
+
+    it('adds entry to history after successful send', () => {
+        render(<CanSender />)
+        fillRequiredFields()
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        expect(useCanSenderStore.getState().addToHistory).toHaveBeenCalledWith(
+            expect.objectContaining({ status: 'success' })
+        )
+    })
+
+    it('adds error entry to history when sendCommand throws', () => {
+        mockSendCommand.mockImplementationOnce(() => { throw new Error('oops') })
+        render(<CanSender />)
+        fillRequiredFields()
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        expect(useCanSenderStore.getState().addToHistory).toHaveBeenCalledWith(
+            expect.objectContaining({ status: 'error', errorMessage: 'oops' })
+        )
+    })
+})
+
+describe('CanSender – save favorite', () => {
+    beforeEach(() => {
+        mockSendCommand.mockReset()
+        // Reset the getState addFavorite mock so call counts are clean
+        vi.mocked(useCanSenderStore.getState().addFavorite).mockReset()
+    })
+
+    it('saves a favorite with custom label via the dialog', () => {
+        render(<CanSender />)
+        fillRequiredFields()
+
+        fireEvent.click(screen.getByTitle('Save as favorite'))
+        fireEvent.change(screen.getByPlaceholderText(/Actuate valve/i), {
+            target: { value: 'My Command' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: /^Save$/ }))
+
+        const addFavorite = useCanSenderStore.getState().addFavorite
+        expect(addFavorite).toHaveBeenCalledOnce()
+        expect((addFavorite as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe('My Command')
+        expect((addFavorite as ReturnType<typeof vi.fn>).mock.calls[0][1].boardTypeId).toBe('SENSOR_BOARD')
+    })
+
+    it('uses board_type_id/msg_type as default label when label is empty', () => {
+        render(<CanSender />)
+        fillRequiredFields()
+
+        fireEvent.click(screen.getByTitle('Save as favorite'))
+        // leave label empty, click Save
+        fireEvent.click(screen.getByRole('button', { name: /^Save$/ }))
+
+        const addFavorite = useCanSenderStore.getState().addFavorite
+        expect(addFavorite).toHaveBeenCalledOnce()
+        expect((addFavorite as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe('SENSOR_BOARD/ACTUATE')
+    })
+
+    it('does not save when required fields are invalid', () => {
+        render(<CanSender />)
+        // Don't fill required fields — open dialog and try to save
+        fireEvent.click(screen.getByTitle('Save as favorite'))
+        fireEvent.click(screen.getByRole('button', { name: /^Save$/ }))
+
+        expect(useCanSenderStore.getState().addFavorite).not.toHaveBeenCalled()
+    })
+})
+
+describe('CanSender – parsley instance dropdown', () => {
+    // These tests need parsleyInstances to persist across re-renders triggered
+    // by field changes, so we set a persistent mock for the whole describe block
+    // and restore the default afterwards.
+    beforeEach(() => {
+        mockSendCommand.mockReset()
+        vi.mocked(useOmnibus).mockReturnValue({
+            connectionStatus: 'connected',
+            errorMessage: '',
+            parsleyInstances: ['host1/usb/COM3', 'host1/usb/COM4'],
+            connect: vi.fn(),
+            disconnect: vi.fn(),
+            sendCommand: mockSendCommand,
         })
     })
 
-    it('allows empty fields', async () => {
-        const consoleSpy = vi.spyOn(console, 'log')
-        render(<CanSender />)
-
-        const submitButton = screen.getByRole('button', { name: /send/i })
-        fireEvent.click(submitButton)
-
-        // Should submit without errors when all fields are empty
-        await waitFor(() => {
-            expect(consoleSpy).toHaveBeenCalledWith({
-                msg_type: null,
-                msg_prio: null,
-                board_type_id: null,
-                board_inst_id: null,
-                time: null,
-            })
+    afterEach(() => {
+        vi.mocked(useOmnibus).mockReturnValue({
+            connectionStatus: 'connected',
+            errorMessage: '',
+            parsleyInstances: [],
+            connect: vi.fn(),
+            disconnect: vi.fn(),
+            sendCommand: mockSendCommand,
         })
-
-        consoleSpy.mockRestore()
     })
 
-    it('submits string values and parses time as integer', async () => {
-        const consoleSpy = vi.spyOn(console, 'log')
+    it('renders a select dropdown when parsleyInstances are available', () => {
         render(<CanSender />)
-
-        fireEvent.change(screen.getByLabelText(/msg_type/i), { target: { value: 'SENSOR_ANALOG' } })
-        fireEvent.change(screen.getByLabelText(/msg_prio/i), { target: { value: 'HIGH' } })
-        fireEvent.change(screen.getByLabelText(/board_type_id/i), { target: { value: 'INJ_SENSOR' } })
-        fireEvent.change(screen.getByLabelText(/board_inst_id/i), { target: { value: 'ROCKET' } })
-        fireEvent.change(screen.getByLabelText(/time \(s\)/i), { target: { value: '1234' } })
-
-        fireEvent.click(screen.getByRole('button', { name: /send/i }))
-
-        await waitFor(() => {
-            expect(consoleSpy).toHaveBeenCalledWith({
-                msg_type: 'SENSOR_ANALOG',
-                msg_prio: 'HIGH',
-                board_type_id: 'INJ_SENSOR',
-                board_inst_id: 'ROCKET',
-                time: 1234,
-            })
-        })
-
-        consoleSpy.mockRestore()
+        const selects = screen.getAllByRole('combobox')
+        // Two comboboxes: msg_prio and parsley instance
+        expect(selects.length).toBe(2)
+        const parsleySelect = selects[1] as HTMLSelectElement
+        const options = Array.from(parsleySelect.options).map((o) => o.value)
+        expect(options).toContain('host1/usb/COM3')
+        expect(options).toContain('host1/usb/COM4')
     })
 
-    it('accepts any string in non-time fields', async () => {
-        const consoleSpy = vi.spyOn(console, 'log')
+    it('selecting a parsley instance sets the field value', () => {
         render(<CanSender />)
-
-        fireEvent.change(screen.getByLabelText(/msg_type/i), { target: { value: '{not valid json}' } })
-        fireEvent.change(screen.getByLabelText(/msg_prio/i), { target: { value: 'anything goes' } })
-
-        fireEvent.click(screen.getByRole('button', { name: /send/i }))
-
-        await waitFor(() => {
-            expect(consoleSpy).toHaveBeenCalledWith(expect.objectContaining({
-                msg_type: '{not valid json}',
-                msg_prio: 'anything goes',
-            }))
-        })
-
-        consoleSpy.mockRestore()
+        const selects = screen.getAllByRole('combobox')
+        fireEvent.change(selects[1], { target: { value: 'host1/usb/COM3' } })
+        expect((selects[1] as HTMLSelectElement).value).toBe('host1/usb/COM3')
     })
 
-    it('clears time validation error when valid integer is entered', async () => {
+    it('sends command with selected parsley instance', () => {
         render(<CanSender />)
+        fireEvent.change(screen.getByPlaceholderText(/e\.g\. SENSOR_BOARD/i), { target: { value: 'SENSOR_BOARD' } })
+        fireEvent.change(screen.getByPlaceholderText(/e\.g\. 0/i), { target: { value: '0' } })
+        fireEvent.change(screen.getByPlaceholderText(/e\.g\. ACTUATE/i), { target: { value: 'ACTUATE' } })
+        const selects = screen.getAllByRole('combobox')
+        fireEvent.change(selects[1], { target: { value: 'host1/usb/COM3' } })
+        fireEvent.click(screen.getByRole('button', { name: /^SEND$/ }))
+        expect(mockSendCommand).toHaveBeenCalledOnce()
+        expect(mockSendCommand.mock.calls[0][0].parsley).toBe('host1/usb/COM3')
+    })
+})
 
-        const timeInput = screen.getByLabelText(/time/i)
-        const submitButton = screen.getByRole('button', { name: /send/i })
-
-        fireEvent.change(timeInput, { target: { value: 'notanumber' } })
-        fireEvent.click(submitButton)
-
-        await waitFor(() => {
-            expect(screen.getByText(/Must be a valid integer/i)).toBeDefined()
+describe('CanSender – load command', () => {
+    it('populates fields when loadCommand is called via history', () => {
+        const cmd: CANCommandMessage = {
+            boardTypeId: 'FLIGHT_COMPUTER',
+            boardInstId: '1',
+            msgType: 'ARM',
+            msgPrio: 'HIGHEST',
+            canMsg: null,
+            parsley: '',
+            messageFormatVersion: 2,
+        }
+        vi.mocked(useCanSenderStore).mockReturnValue({
+            history: [{ id: '1', timestamp: Date.now(), command: cmd, status: 'success' }],
+            favorites: [],
+            addToHistory: vi.fn(),
+            addFavorite: vi.fn(),
+            removeFavorite: vi.fn(),
+            clearHistory: vi.fn(),
         })
-
-        fireEvent.change(timeInput, { target: { value: '42' } })
-
-        await waitFor(() => {
-            expect(screen.queryByText(/Must be a valid integer/i)).toBeNull()
-        })
+        render(<CanSender />)
+        fireEvent.click(screen.getByText('↑ Load'))
+        expect((screen.getByPlaceholderText(/e\.g\. SENSOR_BOARD/i) as HTMLInputElement).value).toBe('FLIGHT_COMPUTER')
+        expect((screen.getByPlaceholderText(/e\.g\. 0/i) as HTMLInputElement).value).toBe('1')
+        expect((screen.getByPlaceholderText(/e\.g\. ACTUATE/i) as HTMLInputElement).value).toBe('ARM')
+        expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('HIGHEST')
     })
 })
